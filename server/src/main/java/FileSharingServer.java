@@ -31,6 +31,10 @@ public class FileSharingServer {
     }
 
     public void init(File filesFolder) {
+        if (filesFolder == null || !filesFolder.exists()) {
+            throw new RuntimeException("Не выбрана папка хранилища файлов");
+        }
+
         filesSharing.setShareFolder(filesFolder);
         filesSharing.getFileList().addListener((ListChangeListener<File>) c -> {
             for (ClientHandler clientHandler : clientList) {

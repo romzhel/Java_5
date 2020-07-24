@@ -3,6 +3,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.stage.Stage;
 import javafx.util.Callback;
 
 import java.io.File;
@@ -51,13 +52,22 @@ public class ClientMainWindowController implements Initializable {
             File selectedFile = lvFiles.getSelectionModel().getSelectedItem();
             if (selectedFile != null) {
                 Command.REQUEST_DOWNLOAD.treat(clientHandler, selectedFile);
+            } else {
+                Dialogs.showMessage("Загрузка файла на сервер", "Выберите файл в списке");
             }
         });
 
         btnUpload.setOnAction(event -> {
             File uploadedFile = Dialogs.selectAnyFileTS(null, "Выбор файла для загруки на сервер",
-                    null, null).get(0);
+                    null, null);
+            if (uploadedFile == null || !uploadedFile.exists()) {
+                return;
+            }
             Command.SEND_FILE.treat(clientHandler, uploadedFile);
+        });
+
+        btnClose.setOnAction(event -> {
+            close();
         });
 
         try {
@@ -72,7 +82,8 @@ public class ClientMainWindowController implements Initializable {
     }
 
     public void close() {
-        clientHandler.close();
+        Command.EXIT.treat(clientHandler);
         executorService.shutdown();
+        ((Stage) btnClose.getScene().getWindow()).close();
     }
 }

@@ -27,6 +27,4 @@ public class ServerMainWindow extends Application {
 
         FileSharingServer.getInstance().start();
     }
-
-
 }

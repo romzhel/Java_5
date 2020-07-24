@@ -28,7 +28,6 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() throws RuntimeException {
         try {
-            Command command;
             while (true) {
                 if (dataInputStream.available() > 0) {
                     String received = dataInputStream.readUTF();
