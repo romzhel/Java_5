@@ -14,7 +14,7 @@ public class Dialogs {
     public static File selectFolder(Stage parentStage, String title) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle(title);
-        directoryChooser.setInitialDirectory(new File(System.getProperty("user.dir")));
+        directoryChooser.setInitialDirectory(new File(System.getProperty("user.dir") + "\\cloud_files"));
 
         return directoryChooser.showDialog(parentStage);
     }

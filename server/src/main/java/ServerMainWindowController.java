@@ -6,7 +6,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.stage.Stage;
 import javafx.util.Callback;
 
 import java.io.File;
@@ -26,6 +25,8 @@ public class ServerMainWindowController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        FileSharingServer.getInstance().init();
+
         lblStatus.setText("Ожидание подключения клиентов");
         FileSharingServer.getInstance().getClientList().addListener((ListChangeListener<ClientHandler>) c -> {
             Platform.runLater(()-> {
@@ -40,7 +41,7 @@ public class ServerMainWindowController implements Initializable {
             });
         });
 
-        FileSharingServer.getInstance().getFilesSharing().getFileList().addListener((ListChangeListener<File>) c -> {
+        FileSharingServer.getInstance().getFilesSharing().addFileListChangeListener(c -> {
             if (c.getList().size() > 0) {
                 Platform.runLater(()-> {
                     lvFiles.getItems().clear();
@@ -67,6 +68,6 @@ public class ServerMainWindowController implements Initializable {
             }
         });
 
-        btnClose.setOnAction(event -> ((Stage)btnClose.getScene().getWindow()).close());
+        btnClose.setOnAction(event -> Platform.exit());
     }
 }

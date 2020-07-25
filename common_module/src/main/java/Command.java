@@ -1,6 +1,3 @@
-import javafx.application.Platform;
-import javafx.scene.control.ListView;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -9,25 +6,24 @@ import java.util.List;
 
 public enum Command {
 
-    REQUEST_DOWNLOAD {
-        void treat(ClientHandler clientHandler, Object... params) {
-            DataOutputStream dos = clientHandler.getDataOutputStream();
+    DOWNLOAD_REQUEST {
+        void execute(CommandParameters cmdParams) {
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             try {
-                dos.writeUTF(RECEIVE_REQUEST_DOWNLOAD_AND_SEND.name());
-                dos.writeUTF(params[0].toString());
+                dos.writeUTF(RECEIVE_DOWNLOAD_REQUEST_AND_SEND_FILE.name());
+                dos.writeUTF(cmdParams.getFile().toString());
             } catch (Exception e) {
-
+                e.printStackTrace();
             }
         }
     },
-    RECEIVE_REQUEST_DOWNLOAD_AND_SEND {
-        void treat(ClientHandler clientHandler, Object... params) {
-            DataInputStream dis = clientHandler.getDataInputStream();
-
+    RECEIVE_DOWNLOAD_REQUEST_AND_SEND_FILE {
+        void execute(CommandParameters cmdParams) {
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             try {
                 File requestedFile = new File(dis.readUTF());
                 if (requestedFile.exists()) {
-                    new FileHandler().sendFile(requestedFile, clientHandler);
+                    new FileHandler().sendFile(requestedFile, cmdParams.getClientHandler());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -35,30 +31,26 @@ public enum Command {
         }
     },
     RECEIVE_FILE {
-        void treat(ClientHandler clientHandler, Object... params) {
-            File saveFolder = params[1] != null ? ((FileSharing) params[1]).getSharedFolder() : null;
-            new FileHandler().receiveFile(saveFolder, clientHandler);
+        void execute(CommandParameters cmdParams) {
+            File folder = cmdParams.getFileSharing() != null ? cmdParams.getFileSharing().getShareFolder() : null;
+            new FileHandler().receiveFile(folder, cmdParams.getClientHandler());
         }
     },
     SEND_FILE {
-        void treat(ClientHandler clientHandler, Object... params) {
-
-            if (params[0] instanceof File) {
-                File uploadedFile = (File) params[0];
-                if (uploadedFile.exists()) {
-                    new FileHandler().sendFile(uploadedFile, clientHandler);
-                }
+        void execute(CommandParameters cmdParams) {
+            if (cmdParams.getFile().exists()) {
+                new FileHandler().sendFile(cmdParams.getFile(), cmdParams.getClientHandler());
             }
         }
     },
     SEND_FILES_LIST {
-        void treat(ClientHandler clientHandler, Object... params) {
-            DataOutputStream dos = clientHandler.getDataOutputStream();
+        void execute(CommandParameters cmdParams) {
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             try {
                 dos.writeUTF(FILES_LIST.name());
-                dos.writeInt(params.length);
-                for (int i = 0; i < params.length; i++) {
-                    dos.writeUTF(params[i].toString());
+                dos.writeInt(cmdParams.getFileArray().length);
+                for (int i = 0; i < cmdParams.getFileArray().length; i++) {
+                    dos.writeUTF(cmdParams.getFileArray()[i].toString());
                 }
                 dos.flush();
             } catch (Exception e) {
@@ -67,8 +59,8 @@ public enum Command {
         }
     },
     FILES_LIST {
-        void treat(ClientHandler clientHandler, Object... params) {
-            DataInputStream dis = clientHandler.getDataInputStream();
+        void execute(CommandParameters cmdParams) {
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             List<File> fileList = new ArrayList<>();
             try {
                 int count = dis.readInt();
@@ -76,12 +68,8 @@ public enum Command {
                     fileList.add(new File(dis.readUTF()));
                 }
 
-                if (params[0] instanceof ListView) {
-                    Platform.runLater(() -> {
-                        ListView<File> lvFileList = (ListView<File>) params[0];
-                        lvFileList.getItems().clear();
-                        lvFileList.getItems().addAll(fileList);
-                    });
+                if (commandResult != null) {
+                    commandResult.send(fileList.toArray());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -89,25 +77,35 @@ public enum Command {
         }
     },
     OK {
-        void treat(ClientHandler clientHandler, Object... params) {
+        void execute(CommandParameters cmdParams) {
             System.out.println("/ok");
         }
     },
     EXIT {
-        void treat(ClientHandler clientHandler, Object... params) {
-            DataOutputStream dos = clientHandler.getDataOutputStream();
+        void execute(CommandParameters cmdParams) {
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             try {
                 dos.writeUTF(EXIT.name());
                 dos.flush();
-                clientHandler.close();
+                cmdParams.getClientHandler().close();
+                if (commandResult != null) {
+                    commandResult.send(cmdParams.getClientHandler());
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     };
 
+    CommandResult commandResult;
+
     Command() {
+        commandResult = null;
     }
 
-    abstract void treat(ClientHandler clientHandler, Object... params);
+    abstract void execute(CommandParameters commandParameters);
+
+    public void setCommandResult(CommandResult commandResult) {
+        this.commandResult = commandResult;
+    }
 }

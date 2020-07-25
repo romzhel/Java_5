@@ -1,5 +1,4 @@
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 
 import java.io.File;
@@ -8,8 +7,10 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class FileSharingServer {
+    private static final String DEFAULT_FOLDER = System.getProperty("user.dir") + "\\cloud_files";
     private static FileSharingServer instance;
     private FileSharing filesSharing;
     private ObservableList<ClientHandler> clientList;
@@ -17,8 +18,8 @@ public class FileSharingServer {
     private ExecutorService executorService;
 
     private FileSharingServer() {
-        filesSharing = new FileSharing();
-        executorService = Executors.newCachedThreadPool();
+        filesSharing = new FileSharing(new File(DEFAULT_FOLDER));
+        executorService = Executors.newFixedThreadPool(4);
         clientList = FXCollections.observableList(new ArrayList<>());
     }
 
@@ -26,33 +27,32 @@ public class FileSharingServer {
         if (instance == null) {
             instance = new FileSharingServer();
         }
-
         return instance;
     }
 
-    public void init(File filesFolder) {
-        if (filesFolder == null || !filesFolder.exists()) {
-            throw new RuntimeException("Не выбрана папка хранилища файлов");
-        }
-
-        filesSharing.setShareFolder(filesFolder);
-        filesSharing.getFileList().addListener((ListChangeListener<File>) c -> {
+    public void init() {
+        filesSharing.addFileListChangeListener(c -> {
             for (ClientHandler clientHandler : clientList) {
-                Command.SEND_FILES_LIST.treat(clientHandler, c.getList().toArray());
+                Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, c.getList()));
+            }
+        });
+        Command.EXIT.setCommandResult(objects -> {
+            if (objects[0] instanceof ClientHandler) {
+                clientList.remove((ClientHandler) objects[0]);
             }
         });
     }
 
     public void start() {
+        filesSharing.start();
         executorService.submit(() -> {
             try {
                 serverSocket = new ServerSocket(8189);
-                System.out.println("Сервер запущен");
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    ClientHandler clientHandler = new ClientHandler(socket, clientList, null, filesSharing);
+                    ClientHandler clientHandler = new ClientHandler(socket, filesSharing);
                     clientList.add(clientHandler);
-                    Command.SEND_FILES_LIST.treat(clientHandler, filesSharing.getFileList().toArray());
+                    Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, filesSharing.getFileList()));
                     executorService.submit(clientHandler);
                 }
             } catch (Exception e) {
@@ -62,10 +62,11 @@ public class FileSharingServer {
     }
 
     public void stop() {
-        filesSharing.close();
+        filesSharing.stop();
         try {
             serverSocket.close();
-            executorService.shutdown();
+            executorService.shutdownNow();
+            executorService.awaitTermination(5, TimeUnit.SECONDS);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -1,3 +1,4 @@
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
@@ -48,10 +49,17 @@ public class ClientMainWindowController implements Initializable {
             }
         });
 
+        Command.FILES_LIST.setCommandResult(objects -> Platform.runLater(() -> {
+            lvFiles.getItems().clear();
+            for (Object obj:objects) {
+                lvFiles.getItems().add((File)obj);
+            }
+        }));
+
         btnDownload.setOnAction(event -> {
             File selectedFile = lvFiles.getSelectionModel().getSelectedItem();
             if (selectedFile != null) {
-                Command.REQUEST_DOWNLOAD.treat(clientHandler, selectedFile);
+                Command.DOWNLOAD_REQUEST.execute(CommandParameters.parse(clientHandler, selectedFile));
             } else {
                 Dialogs.showMessage("Загрузка файла на сервер", "Выберите файл в списке");
             }
@@ -63,7 +71,7 @@ public class ClientMainWindowController implements Initializable {
             if (uploadedFile == null || !uploadedFile.exists()) {
                 return;
             }
-            Command.SEND_FILE.treat(clientHandler, uploadedFile);
+            Command.SEND_FILE.execute(CommandParameters.parse(clientHandler, uploadedFile));
         });
 
         btnClose.setOnAction(event -> {
@@ -72,7 +80,7 @@ public class ClientMainWindowController implements Initializable {
 
         try {
             socket = new Socket("localhost", 8189);
-            clientHandler = new ClientHandler(socket, null, lvFiles, null);
+            clientHandler = new ClientHandler(socket, null);
             executorService = Executors.newSingleThreadExecutor();
             executorService.submit(clientHandler);
         } catch (Exception e) {
@@ -82,7 +90,7 @@ public class ClientMainWindowController implements Initializable {
     }
 
     public void close() {
-        Command.EXIT.treat(clientHandler);
+        Command.EXIT.execute(CommandParameters.parse(clientHandler));
         executorService.shutdown();
         ((Stage) btnClose.getScene().getWindow()).close();
     }

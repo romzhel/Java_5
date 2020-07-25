@@ -1,25 +1,16 @@
-import javafx.collections.ObservableList;
-import javafx.scene.control.ListView;
-
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.net.Socket;
 
 public class ClientHandler implements Runnable {
     private Socket socket;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
-    private ObservableList<ClientHandler> clientList;
-    private ListView<File> lvFileList;
     private FileSharing fileSharing;
 
-    public ClientHandler(Socket socket, ObservableList<ClientHandler> clientList, ListView<File> lvFileList,
-                         FileSharing fileSharing) throws Exception {
+    public ClientHandler(Socket socket, FileSharing fileSharing) throws Exception {
         this.socket = socket;
-        this.clientList = clientList;
-        this.lvFileList = lvFileList;
         this.fileSharing = fileSharing;
         dataInputStream = new DataInputStream(socket.getInputStream());
         dataOutputStream = new DataOutputStream(socket.getOutputStream());
@@ -32,25 +23,22 @@ public class ClientHandler implements Runnable {
                 if (dataInputStream.available() > 0) {
                     String received = dataInputStream.readUTF();
                     System.out.println(received);
-                    Command.valueOf(received).treat(this, lvFileList, fileSharing);
+                    Command.valueOf(received).execute(CommandParameters.parse(this, fileSharing));
                 }
             }
         } catch (Exception e) {
-
+            System.out.println(e.getMessage());
         }
     }
 
     public void close() {
         Closeable[] closeable = new Closeable[]{dataInputStream, dataOutputStream, socket};
-        for (Closeable instance:closeable) {
+        for (Closeable instance : closeable) {
             try {
                 instance.close();
             } catch (Exception e) {
 
             }
-        }
-        if (clientList != null) {
-            clientList.remove(this);
         }
     }
 
