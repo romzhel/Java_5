@@ -25,11 +25,11 @@ public class ServerMainWindowController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        FileSharingServer.getInstance().init();
+        CloudServer.getInstance().init();
 
         lblStatus.setText("Ожидание подключения клиентов");
-        FileSharingServer.getInstance().getClientList().addListener((ListChangeListener<ClientHandler>) c -> {
-            Platform.runLater(()-> {
+        CloudServer.getInstance().getClientList().addListener((ListChangeListener<ClientHandler>) c -> {
+            Platform.runLater(() -> {
                 lvClients.getItems().clear();
                 lvClients.getItems().addAll(c.getList());
 
@@ -41,9 +41,22 @@ public class ServerMainWindowController implements Initializable {
             });
         });
 
-        FileSharingServer.getInstance().getFilesSharing().addFileListChangeListener(c -> {
+        lvClients.setCellFactory(param -> new ListCell<ClientHandler>() {
+            @Override
+            protected void updateItem(ClientHandler item, boolean empty) {
+                super.updateItem(item, empty);
+
+                if (item == null && empty) {
+                    setText(null);
+                } else {
+                    setText(String.format("%s:%s", item.getSocket().getInetAddress(), item.getSocket().getPort()));
+                }
+            }
+        });
+
+        CloudServer.getInstance().getFilesSharing().addFileListChangeListener(c -> {
             if (c.getList().size() > 0) {
-                Platform.runLater(()-> {
+                Platform.runLater(() -> {
                     lvFiles.getItems().clear();
                     lvFiles.getItems().addAll(c.getList());
                 });

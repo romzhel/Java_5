@@ -7,11 +7,13 @@ public class ClientHandler implements Runnable {
     private Socket socket;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
-    private FileSharing fileSharing;
+    private CloudServer cloudServer;
+    private MessageListener messageListener;
+    private CloseListener closeListener;
 
-    public ClientHandler(Socket socket, FileSharing fileSharing) throws Exception {
+    public ClientHandler(Socket socket, CloudServer cloudServer) throws Exception {
         this.socket = socket;
-        this.fileSharing = fileSharing;
+        this.cloudServer = cloudServer;
         dataInputStream = new DataInputStream(socket.getInputStream());
         dataOutputStream = new DataOutputStream(socket.getOutputStream());
     }
@@ -21,13 +23,12 @@ public class ClientHandler implements Runnable {
         try {
             while (true) {
                 if (dataInputStream.available() > 0) {
-                    String received = dataInputStream.readUTF();
-                    System.out.println(received);
-                    Command.valueOf(received).execute(CommandParameters.parse(this, fileSharing));
+                    messageListener.send(dataInputStream.readUTF());
                 }
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
+            close();
         }
     }
 
@@ -40,6 +41,9 @@ public class ClientHandler implements Runnable {
 
             }
         }
+        if (closeListener != null) {
+            closeListener.send();
+        }
     }
 
     public DataInputStream getDataInputStream() {
@@ -48,5 +52,17 @@ public class ClientHandler implements Runnable {
 
     public DataOutputStream getDataOutputStream() {
         return dataOutputStream;
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public interface MessageListener {
+        void send(String message);
+    }
+
+    public interface CloseListener {
+        void send();
     }
 }

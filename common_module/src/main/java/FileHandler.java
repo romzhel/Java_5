@@ -1,52 +1,40 @@
 import java.io.*;
 
 public class FileHandler {
+    private static final int BUFFER_SIZE = 1024;
 
-    public void sendFile(File file, ClientHandler clientHandler) {
+    public void sendFile(File file, ClientHandler clientHandler) throws Exception {
         DataOutputStream dos = clientHandler.getDataOutputStream();
+        dos.writeUTF(Command.RECEIVE_FILE.name());
+        dos.writeUTF(file.getName());
+        dos.writeLong(file.length());
 
-        try {
-            dos.writeUTF(Command.RECEIVE_FILE.name());
-            dos.writeUTF(file.getName());
-            dos.writeLong(file.length());
-
-            byte[] buffer = new byte[1024];
-
-            try (FileInputStream fis = new FileInputStream(file)) {
-                while (fis.available() > 0) {
-                    int bytesRead = fis.read(buffer);
-                    dos.write(buffer, 0, bytesRead);
-                }
-                dos.flush();
-            } catch (Exception e) {
-                e.printStackTrace();
+        try (FileInputStream fis = new FileInputStream(file)) {
+            byte[] buffer = new byte[BUFFER_SIZE];
+            while (fis.available() > 0) {
+                int bytesRead = fis.read(buffer);
+                dos.write(buffer, 0, bytesRead);
             }
+            dos.flush();
         } catch (Exception e) {
-            e.printStackTrace();
+            throw e;
         }
     }
 
-    public void receiveFile(File folder, ClientHandler clientHandler) {
+    public void receiveFile(File folder, ClientHandler clientHandler) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
-        long fileLength = 0;
-        File fileToSave = null;
+        String fileName = dis.readUTF();
+        long fileLength = dis.readLong();
 
-        try {
-            String fileName = dis.readUTF();
-            fileLength = dis.readLong();
-            fileToSave = folder != null ? new File(folder + "\\" + fileName) :
-                    Dialogs.selectAnyFileTS(null, "Выбор места сохранения", null, fileName);
-            if (fileToSave == null) {
-                return;
-            }
-            fileToSave.createNewFile();
-        } catch (Exception e) {
-            e.printStackTrace();
+        File fileToSave = folder != null ? new File(folder + "\\" + fileName) :
+                Dialogs.selectAnyFileTS(null, "Выбор места сохранения", null, fileName);
+        if (fileToSave == null) {
+            return;
         }
-
-        byte[] buffer = new byte[1024];
+        fileToSave.createNewFile();
 
         try (FileOutputStream fos = new FileOutputStream(fileToSave)) {
+            byte[] buffer = new byte[BUFFER_SIZE];
             int bytesRead;
             long cycles = fileLength / buffer.length + (fileLength % buffer.length > 0 ? 1 : 0);
             for (int i = 0; i < cycles; i++) {
@@ -56,7 +44,7 @@ public class FileHandler {
 
             fos.flush();
         } catch (Exception e) {
-            e.printStackTrace();
+            throw e;
         }
     }
 }

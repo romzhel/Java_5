@@ -4,7 +4,6 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.stage.Stage;
 import javafx.util.Callback;
 
 import java.io.File;
@@ -59,7 +58,11 @@ public class ClientMainWindowController implements Initializable {
         btnDownload.setOnAction(event -> {
             File selectedFile = lvFiles.getSelectionModel().getSelectedItem();
             if (selectedFile != null) {
-                Command.DOWNLOAD_REQUEST.execute(CommandParameters.parse(clientHandler, selectedFile));
+                try {
+                    Command.DOWNLOAD_REQUEST.execute(CommandParameters.parse(clientHandler, selectedFile));
+                } catch (Exception e) {
+                    Dialogs.showMessageTS("Скачивание файла с сервера", "Ошибка:\n\n" + e.getMessage());
+                }
             } else {
                 Dialogs.showMessage("Загрузка файла на сервер", "Выберите файл в списке");
             }
@@ -71,7 +74,11 @@ public class ClientMainWindowController implements Initializable {
             if (uploadedFile == null || !uploadedFile.exists()) {
                 return;
             }
-            Command.SEND_FILE.execute(CommandParameters.parse(clientHandler, uploadedFile));
+            try {
+                Command.SEND_FILE.execute(CommandParameters.parse(clientHandler, uploadedFile));
+            } catch (Exception e) {
+                Dialogs.showMessageTS("Загрузка файла на сервер", "Ошибка:\n\n" + e.getMessage());
+            }
         });
 
         btnClose.setOnAction(event -> {
@@ -90,8 +97,12 @@ public class ClientMainWindowController implements Initializable {
     }
 
     public void close() {
-        Command.EXIT.execute(CommandParameters.parse(clientHandler));
+        try {
+            Command.SEND_EXIT.execute(CommandParameters.parse(clientHandler));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         executorService.shutdown();
-        ((Stage) btnClose.getScene().getWindow()).close();
+        Platform.exit();
     }
 }

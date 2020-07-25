@@ -19,11 +19,11 @@ public class ServerMainWindow extends Application {
         primaryStage.setTitle("Консоль состояния сервера файлообменника");
         primaryStage.show();
 
-        FileSharingServer.getInstance().start();
+        CloudServer.getInstance().start();
     }
 
     @Override
     public void stop() throws Exception {
-        FileSharingServer.getInstance().stop();
+        CloudServer.getInstance().stop();
     }
 }

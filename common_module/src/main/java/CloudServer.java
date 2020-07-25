@@ -9,23 +9,23 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class FileSharingServer {
+public class CloudServer {
     private static final String DEFAULT_FOLDER = System.getProperty("user.dir") + "\\cloud_files";
-    private static FileSharingServer instance;
+    private static CloudServer instance;
     private FileSharing filesSharing;
     private ObservableList<ClientHandler> clientList;
     private ServerSocket serverSocket;
     private ExecutorService executorService;
 
-    private FileSharingServer() {
+    private CloudServer() {
         filesSharing = new FileSharing(new File(DEFAULT_FOLDER));
         executorService = Executors.newFixedThreadPool(4);
         clientList = FXCollections.observableList(new ArrayList<>());
     }
 
-    public static FileSharingServer getInstance() {
+    public static CloudServer getInstance() {
         if (instance == null) {
-            instance = new FileSharingServer();
+            instance = new CloudServer();
         }
         return instance;
     }
@@ -33,12 +33,11 @@ public class FileSharingServer {
     public void init() {
         filesSharing.addFileListChangeListener(c -> {
             for (ClientHandler clientHandler : clientList) {
-                Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, c.getList()));
-            }
-        });
-        Command.EXIT.setCommandResult(objects -> {
-            if (objects[0] instanceof ClientHandler) {
-                clientList.remove((ClientHandler) objects[0]);
+                try {
+                    Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, c.getList()));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -50,13 +49,13 @@ public class FileSharingServer {
                 serverSocket = new ServerSocket(8189);
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    ClientHandler clientHandler = new ClientHandler(socket, filesSharing);
+                    ClientHandler clientHandler = new ClientHandler(socket, this);
                     clientList.add(clientHandler);
                     Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, filesSharing.getFileList()));
                     executorService.submit(clientHandler);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                System.out.println(e.getMessage());
             }
         });
     }
@@ -76,7 +75,7 @@ public class FileSharingServer {
         return filesSharing;
     }
 
-    public ObservableList<ClientHandler> getClientList() {
+    public synchronized ObservableList<ClientHandler> getClientList() {
         return clientList;
     }
 }
