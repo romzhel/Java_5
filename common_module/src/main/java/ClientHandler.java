@@ -1,3 +1,5 @@
+import auth_service.User;
+
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -7,22 +9,22 @@ public class ClientHandler implements Runnable {
     private Socket socket;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
-    private CloudServer cloudServer;
     private MessageListener messageListener;
     private CloseListener closeListener;
+    private User user;
 
-    public ClientHandler(Socket socket, CloudServer cloudServer) throws Exception {
+    public ClientHandler(Socket socket) throws Exception {
         this.socket = socket;
-        this.cloudServer = cloudServer;
         dataInputStream = new DataInputStream(socket.getInputStream());
         dataOutputStream = new DataOutputStream(socket.getOutputStream());
+        user = User.UNREGISTERED();
     }
 
     @Override
     public void run() throws RuntimeException {
         try {
             while (true) {
-                if (dataInputStream.available() > 0) {
+                if (dataInputStream.available() > 0 && messageListener != null) {
                     messageListener.send(dataInputStream.readUTF());
                 }
             }
@@ -58,11 +60,27 @@ public class ClientHandler implements Runnable {
         return socket;
     }
 
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
     public interface MessageListener {
         void send(String message);
     }
 
     public interface CloseListener {
         void send();
+    }
+
+    public void setMessageListener(MessageListener messageListener) {
+        this.messageListener = messageListener;
+    }
+
+    public void setCloseListener(CloseListener closeListener) {
+        this.closeListener = closeListener;
     }
 }

@@ -1,7 +1,9 @@
+import auth_service.User;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Callback;
@@ -26,10 +28,21 @@ public class ClientMainWindowController implements Initializable {
     private Button btnUpload;
     @FXML
     private Button btnClose;
-
+    @FXML
+    private Label lblUser;
+    @FXML
+    private Button btnLogin;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        Command.USER_DATA.setCommandResult(objects -> {
+            User user = (User) objects[0];
+            Platform.runLater(() -> {
+                clientHandler.setUser(user);
+                lblUser.setText(user.getNick());
+            });
+        });
+
         lvFiles.setCellFactory(new Callback<ListView<File>, ListCell<File>>() {
             @Override
             public ListCell<File> call(ListView<File> param) {
@@ -50,8 +63,8 @@ public class ClientMainWindowController implements Initializable {
 
         Command.FILES_LIST.setCommandResult(objects -> Platform.runLater(() -> {
             lvFiles.getItems().clear();
-            for (Object obj:objects) {
-                lvFiles.getItems().add((File)obj);
+            for (Object obj : objects) {
+                lvFiles.getItems().add((File) obj);
             }
         }));
 
@@ -69,8 +82,7 @@ public class ClientMainWindowController implements Initializable {
         });
 
         btnUpload.setOnAction(event -> {
-            File uploadedFile = Dialogs.selectAnyFileTS(null, "Выбор файла для загруки на сервер",
-                    null, null);
+            File uploadedFile = Dialogs.selectAnyFileTS(null, "Выбор файла для загрузки на сервер", null);
             if (uploadedFile == null || !uploadedFile.exists()) {
                 return;
             }
@@ -81,28 +93,45 @@ public class ClientMainWindowController implements Initializable {
             }
         });
 
+        btnLogin.setOnAction(event -> {
+            try {
+                Command.SEND_LOGIN_DATA.execute(CommandParameters.parse(clientHandler, Dialogs.getLoginData()));
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        });
+
         btnClose.setOnAction(event -> {
             close();
         });
 
         try {
-            socket = new Socket("localhost", 8189);
-            clientHandler = new ClientHandler(socket, null);
             executorService = Executors.newSingleThreadExecutor();
+            socket = new Socket("localhost", 8189);
+            clientHandler = new ClientHandler(socket);
+            clientHandler.setMessageListener(message -> {
+                try {
+                    Command.valueOf(message).execute(CommandParameters.parse(clientHandler));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
             executorService.submit(clientHandler);
+
         } catch (Exception e) {
 
         }
-
     }
 
     public void close() {
         try {
             Command.SEND_EXIT.execute(CommandParameters.parse(clientHandler));
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
-        executorService.shutdown();
+        executorService.shutdownNow();
         Platform.exit();
     }
+
+
 }

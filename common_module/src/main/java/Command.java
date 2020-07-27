@@ -1,3 +1,5 @@
+import auth_service.User;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -24,7 +26,7 @@ public enum Command {
     },
     RECEIVE_FILE {
         void execute(CommandParameters cmdParams) throws Exception {
-            File folder = cmdParams.getCloudServer() != null ? cmdParams.getCloudServer().getFilesSharing().getShareFolder() : null;
+            File folder = cmdParams.getFileSharing() != null ? cmdParams.getFileSharing().getShareFolder() : null;
             new FileHandler().receiveFile(folder, cmdParams.getClientHandler());
         }
     },
@@ -77,6 +79,58 @@ public enum Command {
         void execute(CommandParameters cmdParams) throws Exception {
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             cmdParams.getClientHandler().close();
+        }
+    },
+    SEND_LOGIN_DATA {
+        void execute(CommandParameters cmdParams) throws Exception {
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(LOGIN_DATA.name());
+            dos.writeUTF(cmdParams.getStringParams()[0]);
+            dos.writeUTF(cmdParams.getStringParams()[1]);
+        }
+    },
+    LOGIN_DATA {
+        void execute(CommandParameters cmdParams) throws Exception {
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            User user = null;
+            try {
+                user = cmdParams.getCloudServer().getAuthService().getNickByLoginPass(dis.readUTF(), dis.readUTF());
+                System.out.println(user);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+                SEND_ERROR.execute(CommandParameters.parse(cmdParams.getClientHandler(), e.getMessage()));
+            }
+            cmdParams.getClientHandler().setUser(user);
+            dos.writeUTF(USER_DATA.name());
+            dos.writeInt(user.getId());
+            dos.writeUTF(user.getNick());
+
+            if (commandResult != null) {
+                commandResult.send(user);
+            }
+        }
+    },
+    USER_DATA {//receive on client
+
+        void execute(CommandParameters cmdParams) throws Exception {
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
+            User user = new User(dis.readInt(), dis.readUTF());
+            if (commandResult != null) {
+                commandResult.send(user);
+            }
+        }
+    },
+    SEND_ERROR {
+        void execute(CommandParameters cmdParams) throws Exception {
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+
+        }
+    },
+    ERROR {
+        void execute(CommandParameters cmdParams) throws Exception {
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+
         }
     };
 

@@ -27,7 +27,7 @@ public class FileHandler {
         long fileLength = dis.readLong();
 
         File fileToSave = folder != null ? new File(folder + "\\" + fileName) :
-                Dialogs.selectAnyFileTS(null, "Выбор места сохранения", null, fileName);
+                Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
         if (fileToSave == null) {
             return;
         }

@@ -25,21 +25,38 @@ public class ServerMainWindowController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        CloudServer.getInstance().init();
+        try {
+            CloudServer.getInstance().init();
 
-        lblStatus.setText("Ожидание подключения клиентов");
-        CloudServer.getInstance().getClientList().addListener((ListChangeListener<ClientHandler>) c -> {
-            Platform.runLater(() -> {
-                lvClients.getItems().clear();
-                lvClients.getItems().addAll(c.getList());
+            lblStatus.setText("Ожидание подключения клиентов");
 
-                if (lvClients.getItems().size() == 0) {
-                    lblStatus.setText("Ожидание подключения клиентов");
-                } else {
-                    lblStatus.setText(String.format("Подключено клиентов: %d", lvClients.getItems().size()));
+            Command.LOGIN_DATA.setCommandResult(objects -> lvClients.refresh());
+
+            CloudServer.getInstance().getClientList().addListener((ListChangeListener<ClientHandler>) c -> {
+                System.out.println("listener");
+                Platform.runLater(() -> {
+                    lvClients.getItems().clear();
+                    lvClients.getItems().addAll(c.getList());
+
+                    if (lvClients.getItems().size() == 0) {
+                        lblStatus.setText("Ожидание подключения клиентов");
+                    } else {
+                        lblStatus.setText(String.format("Подключено клиентов: %d", lvClients.getItems().size()));
+                    }
+                });
+            });
+
+            CloudServer.getInstance().getFilesSharing().addFileListChangeListener(c -> {
+                if (c.getList().size() > 0) {
+                    Platform.runLater(() -> {
+                        lvFiles.getItems().clear();
+                        lvFiles.getItems().addAll(c.getList());
+                    });
                 }
             });
-        });
+        } catch (Exception e) {
+            Dialogs.showMessageTS("Ошибка инициализации сервера", e.getMessage());
+        }
 
         lvClients.setCellFactory(param -> new ListCell<ClientHandler>() {
             @Override
@@ -49,19 +66,12 @@ public class ServerMainWindowController implements Initializable {
                 if (item == null && empty) {
                     setText(null);
                 } else {
-                    setText(String.format("%s:%s", item.getSocket().getInetAddress(), item.getSocket().getPort()));
+                    setText(String.format("%s [%s:%s]", item.getUser().getNick(),
+                            item.getSocket().getInetAddress(), item.getSocket().getPort()));
                 }
             }
         });
 
-        CloudServer.getInstance().getFilesSharing().addFileListChangeListener(c -> {
-            if (c.getList().size() > 0) {
-                Platform.runLater(() -> {
-                    lvFiles.getItems().clear();
-                    lvFiles.getItems().addAll(c.getList());
-                });
-            }
-        });
 
         lvFiles.setCellFactory(new Callback<ListView<File>, ListCell<File>>() {
             @Override

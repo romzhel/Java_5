@@ -1,3 +1,6 @@
+import auth_service.AuthService;
+import auth_service.SqliteAuthService;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
@@ -16,14 +19,16 @@ public class CloudServer {
     private ObservableList<ClientHandler> clientList;
     private ServerSocket serverSocket;
     private ExecutorService executorService;
+    private AuthService authService;
 
-    private CloudServer() {
+    private CloudServer() throws Exception {
         filesSharing = new FileSharing(new File(DEFAULT_FOLDER));
         executorService = Executors.newFixedThreadPool(4);
         clientList = FXCollections.observableList(new ArrayList<>());
+        authService = new SqliteAuthService(DataBase.getInstance().getConnection());
     }
 
-    public static CloudServer getInstance() {
+    public static CloudServer getInstance() throws Exception {
         if (instance == null) {
             instance = new CloudServer();
         }
@@ -46,16 +51,27 @@ public class CloudServer {
         filesSharing.start();
         executorService.submit(() -> {
             try {
+                authService.start();
                 serverSocket = new ServerSocket(8189);
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    ClientHandler clientHandler = new ClientHandler(socket, this);
+                    ClientHandler clientHandler = new ClientHandler(socket);
                     clientList.add(clientHandler);
                     Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, filesSharing.getFileList()));
+                    clientHandler.setMessageListener(message -> {
+                        try {
+                            Command.valueOf(message).execute(CommandParameters.parse(clientHandler, filesSharing, this));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
+                    clientHandler.setCloseListener(() -> clientList.remove(clientHandler));
                     executorService.submit(clientHandler);
                 }
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+                Dialogs.showMessageTS("Ошибка инициализации сервера", e.getMessage());
+                stop();
+                Platform.exit();
             }
         });
     }
@@ -63,16 +79,27 @@ public class CloudServer {
     public void stop() {
         filesSharing.stop();
         try {
+            DataBase.getInstance().disconnect();
+        } catch (Exception e) {
+        }
+        try {
             serverSocket.close();
+
+        } catch (Exception e) {
+        }
+        try {
             executorService.shutdownNow();
             executorService.awaitTermination(5, TimeUnit.SECONDS);
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
     public FileSharing getFilesSharing() {
         return filesSharing;
+    }
+
+    public AuthService getAuthService() {
+        return authService;
     }
 
     public synchronized ObservableList<ClientHandler> getClientList() {
