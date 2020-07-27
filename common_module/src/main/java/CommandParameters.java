@@ -1,5 +1,6 @@
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class CommandParameters {
@@ -11,6 +12,7 @@ public class CommandParameters {
 
     private CommandParameters() {
         fileList = new ArrayList<>();
+        stringParams = new String[]{};
     }
 
     public static CommandParameters parse(Object... objects) {
@@ -28,6 +30,8 @@ public class CommandParameters {
                 result.fileSharing = (FileSharing) object;
             } else if (object instanceof String[]) {
                 result.stringParams = (String[]) object;
+            } else if (object instanceof File[]) {
+                result.fileList.addAll(Arrays.asList((File[]) object));
             }
         }
 

@@ -32,6 +32,8 @@ public class ClientMainWindowController implements Initializable {
     private Label lblUser;
     @FXML
     private Button btnLogin;
+    @FXML
+    private Button btnRegistration;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -41,6 +43,8 @@ public class ClientMainWindowController implements Initializable {
             Platform.runLater(() -> {
                 clientHandler.setUser(user);
                 lblUser.setText(user.getNick());
+                btnLogin.setVisible(false);
+                btnRegistration.setVisible(false);
             });
         });
 
@@ -118,7 +122,7 @@ public class ClientMainWindowController implements Initializable {
                 }
             });
             executorService.submit(clientHandler);
-
+            Command.SEND_FILES_LIST_REQUEST.execute(CommandParameters.parse(clientHandler, new String[]{FileSharing.UP_LEVEL}));
         } catch (Exception e) {
 
         }

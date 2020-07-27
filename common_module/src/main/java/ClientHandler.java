@@ -3,6 +3,7 @@ import auth_service.User;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.net.Socket;
 
 public class ClientHandler implements Runnable {
@@ -12,6 +13,7 @@ public class ClientHandler implements Runnable {
     private MessageListener messageListener;
     private CloseListener closeListener;
     private User user;
+    private File selectedFolder;
 
     public ClientHandler(Socket socket) throws Exception {
         this.socket = socket;
@@ -74,6 +76,14 @@ public class ClientHandler implements Runnable {
 
     public interface CloseListener {
         void send();
+    }
+
+    public File getSelectedFolder() {
+        return selectedFolder;
+    }
+
+    public void setSelectedFolder(File selectedFolder) {
+        this.selectedFolder = selectedFolder;
     }
 
     public void setMessageListener(MessageListener messageListener) {

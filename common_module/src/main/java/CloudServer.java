@@ -36,12 +36,24 @@ public class CloudServer {
     }
 
     public void init() {
-        filesSharing.addFileListChangeListener(c -> {
+        /*filesSharing.addFileListChangeListener(c -> {
             for (ClientHandler clientHandler : clientList) {
                 try {
                     Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, c.getList()));
                 } catch (Exception e) {
                     e.printStackTrace();
+                }
+            }
+        });*/
+        Command.RECEIVE_FILE.addCommandResultListener(objects -> {
+            for (ClientHandler clientHandler : clientList) {
+                if ((objects[0]).toString().startsWith(clientHandler.getSelectedFolder().toString())) {
+                    try {
+                        Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler,
+                                clientHandler.getSelectedFolder().listFiles()));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         });
@@ -57,15 +69,27 @@ public class CloudServer {
                     Socket socket = serverSocket.accept();
                     ClientHandler clientHandler = new ClientHandler(socket);
                     clientList.add(clientHandler);
-                    Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, filesSharing.getFileList()));
+//                    Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, filesSharing.getFileList()));
                     clientHandler.setMessageListener(message -> {
                         try {
                             Command.valueOf(message).execute(CommandParameters.parse(clientHandler, filesSharing, this));
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            try {
+                                Command.SEND_ERROR.execute(CommandParameters.parse(clientHandler, new String[]{e.getMessage()}));
+                            } catch (Exception exception) {
+                                exception.printStackTrace();
+                            }
                         }
                     });
                     clientHandler.setCloseListener(() -> clientList.remove(clientHandler));
+                    Command.LOGIN_DATA.addCommandResultListener(objects -> {
+                        try {
+                            Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler,
+                                    filesSharing.getFileList(clientHandler, FileSharing.UP_LEVEL)));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
                     executorService.submit(clientHandler);
                 }
             } catch (Exception e) {

@@ -26,8 +26,11 @@ public enum Command {
     },
     RECEIVE_FILE {
         void execute(CommandParameters cmdParams) throws Exception {
-            File folder = cmdParams.getFileSharing() != null ? cmdParams.getFileSharing().getShareFolder() : null;
-            new FileHandler().receiveFile(folder, cmdParams.getClientHandler());
+            File file = new FileHandler().receiveFile(cmdParams.getClientHandler());
+            cmdParams.getFileSharing().addNewFile(file, cmdParams.getClientHandler());
+            //TODO добавление в базу + рассылка всем задействованным
+
+            commandResultListeners.forEach(action -> action.send(file, cmdParams.getFileSharing().getShareFolder().listFiles()));
         }
     },
     SEND_FILE {
@@ -35,6 +38,22 @@ public enum Command {
             if (cmdParams.getFile().exists()) {
                 new FileHandler().sendFile(cmdParams.getFile(), cmdParams.getClientHandler());
             }
+        }
+    },
+    SEND_FILES_LIST_REQUEST {
+        void execute(CommandParameters cmdParams) throws Exception {
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(FILES_LIST_REQUEST.name());
+            dos.writeUTF(cmdParams.getStringParams()[0]);
+            dos.flush();
+        }
+    },
+    FILES_LIST_REQUEST {
+        void execute(CommandParameters cmdParams) throws Exception {
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
+            File[] fileList = cmdParams.getFileSharing().getFileList(cmdParams.getClientHandler(), dis.readUTF());
+
+            SEND_FILES_LIST.execute(CommandParameters.parse(cmdParams.getClientHandler(), fileList));
         }
     },
     SEND_FILES_LIST {

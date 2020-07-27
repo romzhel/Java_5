@@ -53,6 +53,10 @@ public class ServerMainWindowController implements Initializable {
                     });
                 }
             });
+            Command.RECEIVE_FILE.addCommandResultListener(objects -> Platform.runLater(() -> {
+                lvFiles.getItems().clear();
+                lvFiles.getItems().addAll((File[]) objects[1]);
+            }));
         } catch (Exception e) {
             Dialogs.showMessageTS("Ошибка инициализации сервера", e.getMessage());
         }
@@ -83,7 +87,9 @@ public class ServerMainWindowController implements Initializable {
                         if (item == null || empty) {
                             setText(null);
                         } else {
-                            setText(item.getName());
+                            String info = item.isFile() ? String.valueOf(item.length()) :
+                                    "папка, файлов: " + item.listFiles().length;
+                            setText(String.format("%s [%s]\n", item.getName(), info));
                         }
                     }
                 };

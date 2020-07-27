@@ -21,15 +21,16 @@ public class FileHandler {
         }
     }
 
-    public void receiveFile(File folder, ClientHandler clientHandler) throws Exception {
+    public File receiveFile(ClientHandler clientHandler) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
         String fileName = dis.readUTF();
         long fileLength = dis.readLong();
 
-        File fileToSave = folder != null ? new File(folder + "\\" + fileName) :
+        File fileToSave = clientHandler.getSelectedFolder() != null ?
+                new File(clientHandler.getSelectedFolder() + "\\" + fileName) :
                 Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
         if (fileToSave == null) {
-            return;
+            throw new RuntimeException("Не выбрано место сохранения файла");
         }
         fileToSave.createNewFile();
 
@@ -46,5 +47,7 @@ public class FileHandler {
         } catch (Exception e) {
             throw e;
         }
+
+        return fileToSave;
     }
 }

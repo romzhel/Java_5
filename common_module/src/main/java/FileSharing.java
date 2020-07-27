@@ -10,14 +10,18 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class FileSharing {
+    public static final String UP_LEVEL = "UP_LEVEL";
     private ScheduledExecutorService executorService;
     private ObservableList<File> fileList;
     private File shareFolder;
+    private FileDb fileDb;
 
-    public FileSharing(File shareFolder) {
+    public FileSharing(File shareFolder) throws Exception {
         this.shareFolder = shareFolder;
         fileList = FXCollections.observableList(new ArrayList<>());
         executorService = Executors.newSingleThreadScheduledExecutor();
+        fileDb = new FileDb(DataBase.getInstance().getConnection());
+        fileDb.init();
     }
 
     public void start() {
@@ -25,7 +29,7 @@ public class FileSharing {
             shareFolder.mkdir();
         }
         executorService.scheduleAtFixedRate(() -> {
-            File[] files = shareFolder.listFiles(pathname -> pathname.isFile());
+            File[] files = shareFolder.listFiles();
             if (files.length != fileList.size()) {
                 fileList.clear();
                 fileList.addAll(files);
@@ -56,13 +60,22 @@ public class FileSharing {
         return shareFolder;
     }
 
-    public void changeShareFolder(File newShareFolder) {
-        if (newShareFolder == null || newShareFolder.isFile()) {
-            throw new RuntimeException("Недопустимая папка: " + newShareFolder.toString());
+    public File[] getFileList(ClientHandler clientHandler, String folder) {
+        if (clientHandler.getUser().getId() != 0) {
+            if (folder.equals(UP_LEVEL)) {
+                File userFolder = new File(shareFolder.getPath() + "\\" + clientHandler.getUser().getNick());
+                if (!userFolder.exists()) {
+                    userFolder.mkdir();
+                }
+                clientHandler.setSelectedFolder(userFolder);
+                return userFolder.listFiles();
+            }
         }
 
-        stop();
-        shareFolder = newShareFolder;
-        start();
+        return new File[]{};
+    }
+
+    public void addNewFile(File file, ClientHandler clientHandler) throws Exception {
+        fileDb.saveNewFile(file.toString(), clientHandler.getUser().getId());
     }
 }
