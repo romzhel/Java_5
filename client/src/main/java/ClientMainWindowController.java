@@ -35,7 +35,8 @@ public class ClientMainWindowController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        Command.USER_DATA.setCommandResult(objects -> {
+        lblUser.setText(User.UNREGISTERED().getNick());
+        Command.USER_DATA.addCommandResultListener(objects -> {
             User user = (User) objects[0];
             Platform.runLater(() -> {
                 clientHandler.setUser(user);
@@ -61,7 +62,7 @@ public class ClientMainWindowController implements Initializable {
             }
         });
 
-        Command.FILES_LIST.setCommandResult(objects -> Platform.runLater(() -> {
+        Command.FILES_LIST.addCommandResultListener(objects -> Platform.runLater(() -> {
             lvFiles.getItems().clear();
             for (Object obj : objects) {
                 lvFiles.getItems().add((File) obj);

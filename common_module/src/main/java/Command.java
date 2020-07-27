@@ -57,9 +57,7 @@ public enum Command {
                 fileList.add(new File(dis.readUTF()));
             }
 
-            if (commandResult != null) {
-                commandResult.send(fileList.toArray());
-            }
+            commandResultListeners.forEach(action -> action.send(fileList.toArray()));
         }
     },
     OK {
@@ -96,53 +94,58 @@ public enum Command {
             User user = null;
             try {
                 user = cmdParams.getCloudServer().getAuthService().getNickByLoginPass(dis.readUTF(), dis.readUTF());
-                System.out.println(user);
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-                SEND_ERROR.execute(CommandParameters.parse(cmdParams.getClientHandler(), e.getMessage()));
-            }
-            cmdParams.getClientHandler().setUser(user);
-            dos.writeUTF(USER_DATA.name());
-            dos.writeInt(user.getId());
-            dos.writeUTF(user.getNick());
+                cmdParams.getClientHandler().setUser(user);
+                dos.writeUTF(USER_DATA.name());
+                dos.writeInt(user.getId());
+                dos.writeUTF(user.getNick());
 
-            if (commandResult != null) {
-                commandResult.send(user);
+                for (ResultListener rs : commandResultListeners) {
+                    rs.send(user);
+                }
+            } catch (Exception e) {
+                SEND_ERROR.execute(CommandParameters.parse(cmdParams.getClientHandler(), new String[]{e.getMessage()}));
             }
         }
     },
-    USER_DATA {//receive on client
-
+    USER_DATA {
         void execute(CommandParameters cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             User user = new User(dis.readInt(), dis.readUTF());
-            if (commandResult != null) {
-                commandResult.send(user);
+            for (ResultListener rs : commandResultListeners) {
+                rs.send(user);
             }
         }
     },
     SEND_ERROR {
         void execute(CommandParameters cmdParams) throws Exception {
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
-
+            dos.writeUTF(ERROR.name());
+            dos.writeUTF(cmdParams.getStringParams()[0]);
         }
     },
     ERROR {
         void execute(CommandParameters cmdParams) throws Exception {
-            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
-
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
+            Dialogs.showMessageTS("Ошибка", dis.readUTF());
         }
     };
 
-    CommandResult commandResult;
+    List<ResultListener> commandResultListeners;
 
     Command() {
-        commandResult = null;
+        commandResultListeners = new ArrayList<>();
     }
 
     abstract void execute(CommandParameters commandParameters) throws Exception;
 
-    public void setCommandResult(CommandResult commandResult) {
-        this.commandResult = commandResult;
+    public void addCommandResultListener(ResultListener commandResult) {
+        if (commandResult != null) ;
+        {
+            commandResultListeners.add(commandResult);
+        }
+    }
+
+    interface ResultListener {
+        void send(Object... objects);
     }
 }
