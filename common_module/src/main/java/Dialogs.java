@@ -2,10 +2,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.*;
@@ -130,19 +127,8 @@ public class Dialogs {
             stage.close();
         });
 
-        btnOk.setOnAction(event -> {
-            boolean hasInputError = false;
-            if (tfLogin.getText().length() < 3) {
-                showMessageTS("Ошибка ввода", "Логин должен быть не менее 3 символов");
-                hasInputError = true;
-            } else if (tfPassword.getText().isEmpty()) {
-                showMessageTS("Ошибка ввода", "Пароль не может быть пустым");
-                hasInputError = true;
-            }
-            if (!hasInputError) {
-                stage.close();
-            }
-        });
+        tfPassword.setOnAction(event -> loginDialogCheckData(tfLogin, tfPassword, stage));
+        btnOk.setOnAction(event -> loginDialogCheckData(tfLogin, tfPassword, stage));
 
         btnCancel.setOnAction(event -> {
             isCancelled[0] = true;
@@ -155,6 +141,20 @@ public class Dialogs {
         }
 
         return new String[]{tfLogin.getText(), tfPassword.getText()};
+    }
+
+    private static void loginDialogCheckData(TextField tfLogin, TextField tfPassword, Stage stage) {
+        boolean hasInputError = false;
+        if (tfLogin.getText().length() < 3) {
+            showMessageTS("Ошибка ввода", "Логин должен быть не менее 3 символов");
+            hasInputError = true;
+        } else if (tfPassword.getText().isEmpty()) {
+            showMessageTS("Ошибка ввода", "Пароль не может быть пустым");
+            hasInputError = true;
+        }
+        if (!hasInputError) {
+            stage.close();
+        }
     }
 
     public static String[] getRegistrationData() throws Exception {
@@ -198,5 +198,14 @@ public class Dialogs {
         }
 
         return new String[]{tfLogin.getText(), tfPassword.getText()};
+    }
+
+    public static String TextInputDialog(String title, String comment, String label) {
+        TextInputDialog tid = new TextInputDialog();
+        tid.setTitle(title);
+        tid.setHeaderText(tid.getHeaderText());
+        tid.setContentText(label);
+
+        return tid.showAndWait().orElseGet(() -> "");
     }
 }

@@ -1,11 +1,21 @@
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class FileHandler {
+    private static final Logger logger = LogManager.getLogger(FileHandler.class);
     private static final int BUFFER_SIZE = 1024;
 
     public void sendFile(File file, ClientHandler clientHandler) throws Exception {
+        if (!file.exists()) {
+            throw new RuntimeException("Файл " + file + " не найден");
+        }
+
         DataOutputStream dos = clientHandler.getDataOutputStream();
-        dos.writeUTF(Command.RECEIVE_FILE.name());
+        dos.writeUTF(Command.IN_RECEIVE_FILE.name());
         dos.writeUTF(file.getName());
         dos.writeLong(file.length());
 
@@ -21,17 +31,19 @@ public class FileHandler {
         }
     }
 
-    public File receiveFile(ClientHandler clientHandler) throws Exception {
+    public Path receiveFile(ClientHandler clientHandler, Path pathToSave) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
         String fileName = dis.readUTF();
         long fileLength = dis.readLong();
 
-        File fileToSave = clientHandler.getSelectedFolder() != null ?
-                new File(clientHandler.getSelectedFolder() + "\\" + fileName) :
+        File fileToSave = pathToSave != null ? FileSharing.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
                 Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
+
         if (fileToSave == null) {
             throw new RuntimeException("Не выбрано место сохранения файла");
         }
+
+        logger.trace("будет принят файл {}", fileToSave);
         fileToSave.createNewFile();
 
         try (FileOutputStream fos = new FileOutputStream(fileToSave)) {
@@ -48,6 +60,18 @@ public class FileHandler {
             throw e;
         }
 
-        return fileToSave;
+        return fileToSave.toPath().subpath(FileSharing.MAIN_FOLDER.getNameCount(), fileToSave.toPath().getNameCount());
+    }
+
+    public Path createFolder(ClientHandler clientHandler) throws Exception {
+        DataInputStream dis = clientHandler.getDataInputStream();
+        Path folderPath = Paths.get(clientHandler.getUser().getNick()).resolve(dis.readUTF());
+        Path fullFolderPath = FileSharing.MAIN_FOLDER.resolve(folderPath);
+        if (fullFolderPath.toFile().exists()) {
+            throw new RuntimeException("Такая папка уже существует");
+        }
+
+        fullFolderPath.toFile().mkdir();
+        return folderPath;
     }
 }

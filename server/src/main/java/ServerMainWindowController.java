@@ -7,6 +7,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Callback;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.net.URL;
@@ -23,14 +25,17 @@ public class ServerMainWindowController implements Initializable {
     @FXML
     private Button btnClose;
 
+    private static final Logger logger = LogManager.getLogger(ServerMainWindowController.class);
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        logger.trace("инициализация окна оснастки сервера");
         try {
             CloudServer.getInstance().init();
 
             lblStatus.setText("Ожидание подключения клиентов");
 
-            Command.LOGIN_DATA.addCommandResultListener(objects -> lvClients.refresh());
+            Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> lvClients.refresh());
 
             CloudServer.getInstance().getClientList().addListener((ListChangeListener<ClientHandler>) c -> {
                 Platform.runLater(() -> {
@@ -45,18 +50,11 @@ public class ServerMainWindowController implements Initializable {
                 });
             });
 
-            CloudServer.getInstance().getFilesSharing().addFileListChangeListener(c -> {
-                if (c.getList().size() > 0) {
-                    Platform.runLater(() -> {
-                        lvFiles.getItems().clear();
-                        lvFiles.getItems().addAll(c.getList());
-                    });
-                }
-            });
-            Command.RECEIVE_FILE.addCommandResultListener(objects -> Platform.runLater(() -> {
+            /*Command.IN_RECEIVE_FILE.addCommandResultListener(objects -> Platform.runLater(() -> {
                 lvFiles.getItems().clear();
-                lvFiles.getItems().addAll((File[]) objects[1]);
-            }));
+                lvFiles.getItems().addAll((File[]) objects[0]);
+            }));*/
+            //TODO
         } catch (Exception e) {
             Dialogs.showMessageTS("Ошибка инициализации сервера", e.getMessage());
         }

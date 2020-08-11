@@ -1,6 +1,7 @@
 package auth_service;
 
 public class User {
+    public static final User UNREGISTERED = new User(0, "Неизвестный");
     private int id;
     private String nick;
 
@@ -14,10 +15,6 @@ public class User {
             throw new RuntimeException("Некорректные параметры");
         }
         return new User(Integer.parseInt(params[0]), params[1]);
-    }
-
-    public static User UNREGISTERED() {
-        return new User(0, "Неизвестный");
     }
 
     public String[] convertToStringArray() {

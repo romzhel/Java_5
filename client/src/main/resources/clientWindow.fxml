@@ -4,26 +4,24 @@
 <?import javafx.scene.layout.*?>
 <AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="ClientMainWindowController">
    <children>
-      <ListView fx:id="lvFiles" layoutX="23.0" layoutY="22.0" prefHeight="427.0" prefWidth="752.0"
-                AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0"
+      <ListView fx:id="lvFiles" layoutX="23.0" layoutY="22.0" prefHeight="280.0" prefWidth="434.0"
+                AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="156.0"
                 AnchorPane.topAnchor="70.0"/>
-      <Button fx:id="btnDownload" layoutX="25.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0"
-              prefWidth="150.0" text="Скачать с сервера"/>
-      <Button fx:id="btnUpload" layoutX="188.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0"
-              prefWidth="150.0" text="Загрузить на сервер"/>
-      <Button fx:id="btnClose" layoutX="424.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0"
-              prefWidth="150.0" text="Закрыть"/>
+      <Button fx:id="btnDownload" layoutX="453.0" layoutY="155.0" mnemonicParsing="false" prefHeight="25.0"
+              prefWidth="129.0" text="Скачать с сервера"/>
+      <Button fx:id="btnUpload" layoutX="453.0" layoutY="188.0" mnemonicParsing="false" prefHeight="25.0"
+              prefWidth="129.0" text="Загрузить на сервер"/>
+      <Button fx:id="btnClose" layoutX="461.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0"
+              prefWidth="129.0" text="Закрыть"/>
       <ProgressBar fx:id="pbProgress" layoutX="25.0" layoutY="332.0" prefHeight="18.0" prefWidth="564.0" progress="0.0"
                    visible="false" AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="10.0"
                    AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="332.0"/>
-      <Label layoutX="20.0" layoutY="10.0" text="Список файлов на сервере:" AnchorPane.topAnchor="50.0"/>
-      <Label layoutX="20.0" layoutY="15.0" text="Текущий пользователь:" AnchorPane.topAnchor="15.0"/>
-      <Button fx:id="btnLogin" layoutX="375.0" layoutY="11.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="99.0"
-              text="Авторизация" AnchorPane.rightAnchor="126.0" AnchorPane.topAnchor="11.0"/>
-      <Label fx:id="lblUser" layoutX="161.0" layoutY="15.0" prefHeight="17.0" prefWidth="202.0" text="Label"
-             AnchorPane.topAnchor="15.0"/>
-      <Separator layoutX="5.0" layoutY="43.0" prefHeight="7.0" prefWidth="580.0"/>
-      <Button fx:id="btnRegistration" disable="true" layoutX="483.0" layoutY="11.0" mnemonicParsing="false"
-              prefHeight="25.0" prefWidth="99.0" text="Регистрация"/>
+      <Label layoutX="14.0" layoutY="14.0" text="Список файлов на сервере:" AnchorPane.topAnchor="14.0"/>
+      <Button fx:id="btnLogin" layoutX="453.0" layoutY="70.0" mnemonicParsing="false" prefHeight="25.0"
+              prefWidth="129.0" text="Авторизация" AnchorPane.rightAnchor="18.0" AnchorPane.topAnchor="70.0"/>
+      <Button fx:id="btnRegistration" disable="true" layoutX="453.0" layoutY="104.0" mnemonicParsing="false"
+              prefHeight="25.0" prefWidth="129.0" text="Регистрация"/>
+      <Button fx:id="btnCreateFolder" layoutX="453.0" layoutY="229.0" mnemonicParsing="false" prefHeight="25.0"
+              prefWidth="129.0" text="Создать папку"/>
    </children>
 </AnchorPane>

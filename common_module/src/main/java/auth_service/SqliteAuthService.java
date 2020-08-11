@@ -28,7 +28,6 @@ public class SqliteAuthService implements AuthService {
 
     @Override
     public User getNickByLoginPass(String login, String password) throws Exception {
-        System.out.println(login + " " + password);
         getNick.setString(1, login);
         getNick.setString(2, password);
 

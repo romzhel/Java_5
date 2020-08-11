@@ -1,25 +1,32 @@
 import auth_service.User;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.net.Socket;
+import java.nio.file.Path;
 
 public class ClientHandler implements Runnable {
+    private static final Logger logger = LogManager.getLogger(ClientHandler.class);
+    private CloudServer server;
     private Socket socket;
     private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
     private MessageListener messageListener;
     private CloseListener closeListener;
     private User user;
-    private File selectedFolder;
+    private Path selectedFolder;
 
-    public ClientHandler(Socket socket) throws Exception {
+    public ClientHandler(CloudServer server, Socket socket) throws Exception {
+        this.server = server;
         this.socket = socket;
         dataInputStream = new DataInputStream(socket.getInputStream());
         dataOutputStream = new DataOutputStream(socket.getOutputStream());
-        user = User.UNREGISTERED();
+        user = User.UNREGISTERED;
+        selectedFolder = FileSharing.UP_LEVEL;
+        logger.trace("created {}", this);
     }
 
     @Override
@@ -66,6 +73,10 @@ public class ClientHandler implements Runnable {
         return user;
     }
 
+    public CloudServer getServer() {
+        return server;
+    }
+
     public void setUser(User user) {
         this.user = user;
     }
@@ -78,11 +89,11 @@ public class ClientHandler implements Runnable {
         void send();
     }
 
-    public File getSelectedFolder() {
+    public Path getSelectedFolder() {
         return selectedFolder;
     }
 
-    public void setSelectedFolder(File selectedFolder) {
+    public void setSelectedFolder(Path selectedFolder) {
         this.selectedFolder = selectedFolder;
     }
 
@@ -92,5 +103,13 @@ public class ClientHandler implements Runnable {
 
     public void setCloseListener(CloseListener closeListener) {
         this.closeListener = closeListener;
+    }
+
+    @Override
+    public String toString() {
+        return "ClientHandler{" +
+                "user=" + user +
+                ", selectedFolder=" + selectedFolder +
+                '}';
     }
 }
