@@ -23,5 +23,6 @@
               prefHeight="25.0" prefWidth="129.0" text="Регистрация"/>
       <Button fx:id="btnCreateFolder" layoutX="453.0" layoutY="229.0" mnemonicParsing="false" prefHeight="25.0"
               prefWidth="129.0" text="Создать папку"/>
+      <FlowPane fx:id="fpNavigationPane" layoutX="11.0" layoutY="37.0" prefHeight="25.0" prefWidth="571.0"/>
    </children>
 </AnchorPane>

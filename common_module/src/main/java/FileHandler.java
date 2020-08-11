@@ -19,6 +19,8 @@ public class FileHandler {
         dos.writeUTF(file.getName());
         dos.writeLong(file.length());
 
+        logger.trace("file name sent {}", file.getName());
+
         try (FileInputStream fis = new FileInputStream(file)) {
             byte[] buffer = new byte[BUFFER_SIZE];
             while (fis.available() > 0) {
@@ -32,41 +34,46 @@ public class FileHandler {
     }
 
     public Path receiveFile(ClientHandler clientHandler, Path pathToSave) throws Exception {
+        logger.trace("будет принят файл {}", pathToSave);
         DataInputStream dis = clientHandler.getDataInputStream();
         String fileName = dis.readUTF();
         long fileLength = dis.readLong();
 
-        File fileToSave = pathToSave != null ? FileSharing.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
+        File fileToSave = pathToSave != null ? FileManager.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
                 Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
 
+        byte[] buffer = new byte[BUFFER_SIZE];
+
         if (fileToSave == null) {
+            long cycles = fileLength / buffer.length + (fileLength % buffer.length > 0 ? 1 : 0);
+            for (int i = 0; i < cycles; i++) {
+                dis.read(buffer);
+            }
             throw new RuntimeException("Не выбрано место сохранения файла");
         }
 
-        logger.trace("будет принят файл {}", fileToSave);
+        logger.trace("файл будет сохранен {}", fileToSave);
         fileToSave.createNewFile();
 
         try (FileOutputStream fos = new FileOutputStream(fileToSave)) {
-            byte[] buffer = new byte[BUFFER_SIZE];
             int bytesRead;
             long cycles = fileLength / buffer.length + (fileLength % buffer.length > 0 ? 1 : 0);
             for (int i = 0; i < cycles; i++) {
                 bytesRead = dis.read(buffer);
                 fos.write(buffer, 0, bytesRead);
             }
-
             fos.flush();
         } catch (Exception e) {
             throw e;
         }
 
-        return fileToSave.toPath().subpath(FileSharing.MAIN_FOLDER.getNameCount(), fileToSave.toPath().getNameCount());
+        return pathToSave.resolve(fileName);
     }
 
     public Path createFolder(ClientHandler clientHandler) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
         Path folderPath = Paths.get(clientHandler.getUser().getNick()).resolve(dis.readUTF());
-        Path fullFolderPath = FileSharing.MAIN_FOLDER.resolve(folderPath);
+        Path fullFolderPath = FileManager.MAIN_FOLDER.resolve(folderPath);
         if (fullFolderPath.toFile().exists()) {
             throw new RuntimeException("Такая папка уже существует");
         }

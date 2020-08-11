@@ -67,7 +67,9 @@ public class FileDb {
 
     public List<Path> getFiles(User user, Path folder) throws Exception {
         logger.trace("будет сделан запрос в БД: user = {}, folder = {}", user, folder);
-        getFileList.setString(1, folder.toString() + "_%");
+        String searchText = folder.equals(FileManager.UP_LEVEL) ? "%" : folder.toString() + "\\%";
+        logger.trace("search text = ", searchText);
+        getFileList.setString(1, searchText);
         getFileList.setInt(2, user.getId());
 
         ResultSet rs = getFileList.executeQuery();

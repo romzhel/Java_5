@@ -5,6 +5,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.layout.FlowPane;
 import javafx.util.Callback;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,9 +39,32 @@ public class ClientMainWindowController implements Initializable {
     private Button btnRegistration;
     @FXML
     private Button btnCreateFolder;
+    @FXML
+    private FlowPane fpNavigationPane;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        initGui();
+
+        try {
+            executorService = Executors.newSingleThreadExecutor();
+            socket = new Socket("localhost", 8189);
+            clientHandler = new ClientHandler(null, socket);
+            clientHandler.setMessageListener(message -> {
+                try {
+                    Command.valueOf(message).execute(CmdParams.parse(clientHandler));
+                } catch (Exception e) {
+
+                }
+            });
+            executorService.submit(clientHandler);
+//            Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, ));
+        } catch (Exception e) {
+
+        }
+    }
+
+    private void initGui() {
         Command.IN_USER_DATA.addCommandResultListener(objects -> {
             User user = (User) objects[0];
             Platform.runLater(() -> {
@@ -60,7 +85,7 @@ public class ClientMainWindowController implements Initializable {
                         if (item == null || empty) {
                             setText(null);
                         } else {
-                            String details = item.isFolder() ? "папка" : FileSharing.formatSize(item.getLength());
+                            String details = item.isFolder() ? "папка" : FileManager.formatSize(item.getLength());
                             setText(String.format("%s [%s]", item.getPath().getFileName().toString(), details));
                         }
                     }
@@ -72,10 +97,10 @@ public class ClientMainWindowController implements Initializable {
             if (event.getClickCount() == 2) {
                 FileInfo selectedFileInfo = lvFiles.getSelectionModel().getSelectedItem();
                 Path selectedPathForRequest = clientHandler.getSelectedFolder().resolve(selectedFileInfo.getPath());
-                logger.trace("выбран элемент {}, папка = {}", selectedPathForRequest, selectedPathForRequest.toFile().isDirectory());
+                logger.trace("выбран элемент {}, папка = {}", selectedFileInfo, selectedFileInfo.isFolder());
                 if (selectedFileInfo.isFolder()) {
                     try {
-                        Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, selectedPathForRequest));
+                        Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -85,9 +110,21 @@ public class ClientMainWindowController implements Initializable {
             }
         });
 
+        NavigationPane navigationPane = new NavigationPane(fpNavigationPane, Paths.get("..."));
+        navigationPane.addNavigationListener(path -> {
+            logger.trace("request navigation to {}", path);
+            try {
+                Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, path));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
         Command.IN_FILES_LIST.addCommandResultListener(objects -> Platform.runLater(() -> {
+            FilesInfo filesInfo = (FilesInfo) objects[0];
             lvFiles.getItems().clear();
-            lvFiles.getItems().addAll(((FilesInfo) objects[0]).getFileList());
+            lvFiles.getItems().addAll(filesInfo.getFileList());
+            navigationPane.setAddress(filesInfo.getFolder());
         }));
 
         btnDownload.setOnAction(event -> {
@@ -132,37 +169,18 @@ public class ClientMainWindowController implements Initializable {
         btnClose.setOnAction(event -> {
             close();
         });
-
-        try {
-            executorService = Executors.newSingleThreadExecutor();
-            socket = new Socket("localhost", 8189);
-            clientHandler = new ClientHandler(null, socket);
-            clientHandler.setMessageListener(message -> {
-                try {
-                    Command.valueOf(message).execute(CmdParams.parse(clientHandler));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-            executorService.submit(clientHandler);
-//            Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, ));
-        } catch (Exception e) {
-
-        }
     }
 
     private void downloadFile() {
         FileInfo selectedFileInfo = lvFiles.getSelectionModel().getSelectedItem();
-        Path selectedPathForRequest = clientHandler.getSelectedFolder().resolve(selectedFileInfo.getPath());
         try {
             if (selectedFileInfo.isFolder()) {
-                logger.trace("выбран элемент {}, папка = {}", selectedPathForRequest, selectedPathForRequest.toFile().isDirectory());
-
-                Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, selectedPathForRequest));
+                logger.trace("выбран элемент {}, папка = {}", selectedFileInfo, selectedFileInfo.isFolder());
+                Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
             } else {
-                logger.trace("выбран для загрузки файл {}", selectedPathForRequest);
+                logger.trace("выбран для загрузки файл {}", selectedFileInfo);
             }
-            Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, selectedPathForRequest));
+            Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
         } catch (Exception e) {
             Dialogs.showMessageTS("Скачивание файла/навигация", "Ошибка:\n\n" + e.getMessage());
         }

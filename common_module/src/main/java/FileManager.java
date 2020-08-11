@@ -7,13 +7,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
-public class FileSharing {
+public class FileManager {
     public static final Path MAIN_FOLDER = Paths.get(System.getProperty("user.dir"), "cloud_files");
     public static final Path UP_LEVEL = Paths.get("");
-    private static final Logger logger = LogManager.getLogger(FileSharing.class);
+    private static final Logger logger = LogManager.getLogger(FileManager.class);
     private FileDb fileDb;
 
-    public FileSharing() throws Exception {
+    public FileManager() throws Exception {
         fileDb = new FileDb(DataBase.getInstance().getConnection());
         fileDb.init();
     }
@@ -23,7 +23,7 @@ public class FileSharing {
             return v + " B";
         }
         int z = (63 - Long.numberOfLeadingZeros(v)) / 10;
-        return String.format("%.1f %sB", (double) v / (1L << (z * 10)), " kMGTPE".charAt(z));
+        return String.format("%.1f %sB", (double) v / (1L << (z * 10)), " KMGTPE".charAt(z));
     }
 
     public void start() {
@@ -38,21 +38,6 @@ public class FileSharing {
             }
         });
     }
-
-    /*public File[] getFileList(ClientHandler clientHandler, Path folder) {
-        if (clientHandler.getUser().getId() != 0) {
-            if (folder.equals(UP_LEVEL)) {
-                Path userFolder = Paths.get(shareFolder.toString(), "\\", clientHandler.getUser().getNick());
-                if (!userFolder.toFile().exists()) {
-                    userFolder.toFile().mkdir();
-                }
-                clientHandler.setSelectedFolder(userFolder);
-                return userFolder.listFiles();
-            }
-        }
-
-        return new File[]{};
-    }*/
 
     public FilesInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки
         return FilesInfo.create()
@@ -73,5 +58,13 @@ public class FileSharing {
     public void addNewFile(Path path, ClientHandler clientHandler) throws Exception {
         logger.trace("добавление файла {}", path);
         fileDb.saveNewFile(path.toString(), clientHandler.getUser().getId());
+    }
+
+    public void getFolderInfo(Path folderPath) {
+        long size = 0;
+        int filesCount = 0;
+        int folderCount = 0;
+
+
     }
 }

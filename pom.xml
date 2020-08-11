@@ -12,7 +12,7 @@
     </modules>
 
     <groupId>groupId</groupId>
-    <artifactId>FileSharing</artifactId>
+    <artifactId>FileCloud</artifactId>
     <version>1.0</version>
 
     <build>

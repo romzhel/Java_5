@@ -27,8 +27,7 @@ public enum Command {
         void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             String requestedFileName = dis.readUTF();
-            File requestedFile = FileSharing.MAIN_FOLDER
-                    .resolve(cmdParams.getClientHandler().getSelectedFolder())
+            File requestedFile = FileManager.MAIN_FOLDER
                     .resolve(requestedFileName)
                     .toFile();
             LogManager.getLogger(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name()).trace(requestedFile);
@@ -37,17 +36,19 @@ public enum Command {
     },
     IN_RECEIVE_FILE {
         void execute(CmdParams cmdParams) throws Exception {
-            LogManager.getLogger(IN_RECEIVE_FILE.name()).trace(cmdParams.toString());
+            LogManager.getLogger(IN_RECEIVE_FILE.name()).trace(cmdParams);
 
+            Path selectedFolder = cmdParams.getClientHandler().getSelectedFolder();
             Path folderToSave = cmdParams.getCloudServer() != null ?
-                    Paths.get(cmdParams.getClientHandler().getUser().getNick())
-                            .resolve(cmdParams.getClientHandler().getSelectedFolder()) : null;
+                    selectedFolder == FileManager.UP_LEVEL ? Paths.get(cmdParams.getClientHandler().getUser().getNick())
+                            .resolve(selectedFolder) : selectedFolder
+                    : null;
 
             Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler(), folderToSave);
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace("received file = {}", filePath);
-            FileSharing fileSharing = cmdParams.getFileSharing();
-            if (fileSharing != null) {
-                fileSharing.addNewFile(filePath, cmdParams.getClientHandler());
+            FileManager fileManager = cmdParams.getFileSharing();
+            if (fileManager != null) {
+                fileManager.addNewFile(filePath, cmdParams.getClientHandler());
                 commandResultListeners.forEach(action -> action.send(filePath));
             }
             //TODO добавление в базу + рассылка всем задействованным
@@ -73,7 +74,7 @@ public enum Command {
                 throw new RuntimeException("Неверное количество параметров");
             }
 
-            LogManager.getLogger(OUT_SEND_FILE_LIST_REQUEST.name()).trace(cmdParams);
+            LogManager.getLogger(OUT_SEND_FILE_LIST_REQUEST.name()).trace(cmdParams.getStringParams().get(0));
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_FILE_LIST_REQUEST.name());
             dos.writeUTF(cmdParams.getStringParams().get(0));
@@ -206,10 +207,10 @@ public enum Command {
     IN_CREATE_FOLDER {
         void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_CREATE_FOLDER.name()).trace(cmdParams);
-            FileSharing fileSharing = cmdParams.getFileSharing();
-            if (fileSharing != null) {
+            FileManager fileManager = cmdParams.getFileSharing();
+            if (fileManager != null) {
                 Path folderPath = new FileHandler().createFolder(cmdParams.getClientHandler());
-                fileSharing.addNewFile(folderPath, cmdParams.getClientHandler());
+                fileManager.addNewFile(folderPath, cmdParams.getClientHandler());
                 LogManager.getLogger(IN_CREATE_FOLDER.name()).trace("папка {} добавлена", folderPath);
                 commandResultListeners.forEach(action -> action.send(folderPath));
             }

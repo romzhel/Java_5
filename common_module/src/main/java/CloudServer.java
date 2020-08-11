@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class CloudServer {
     private static final Logger logger = LogManager.getLogger(CloudServer.class);
     private static CloudServer instance;
-    private FileSharing filesSharing;
+    private FileManager filesSharing;
     private ObservableList<ClientHandler> clientList;
     private ServerSocket serverSocket;
     private ExecutorService executorService;
@@ -26,7 +26,7 @@ public class CloudServer {
     private FolderWatcherService folderWatcherService;
 
     private CloudServer() throws Exception {
-        filesSharing = new FileSharing();
+        filesSharing = new FileManager();
         executorService = Executors.newFixedThreadPool(4);
         clientList = FXCollections.observableList(new ArrayList<>());
         authService = new SqliteAuthService(DataBase.getInstance().getConnection());
@@ -90,7 +90,7 @@ public class CloudServer {
                     executorService.submit(clientHandler);
                 }
             } catch (Exception e) {
-                Dialogs.showMessageTS("Ошибка инициализации сервера", e.getMessage());
+                Dialogs.showMessage("Ошибка инициализации сервера", e.getMessage());
                 stop();
                 Platform.exit();
             }
@@ -99,7 +99,7 @@ public class CloudServer {
 
     private void initClientHandler(ClientHandler clientHandler) throws Exception {
         clientList.add(clientHandler);
-        Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileSharing.UP_LEVEL));
+        Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileManager.UP_LEVEL));
         clientHandler.setMessageListener(message -> {
             try {
                 Command.valueOf(message).execute(CmdParams.parse(clientHandler));
@@ -107,14 +107,14 @@ public class CloudServer {
                 try {
                     Command.OUT_SEND_ERROR.execute(CmdParams.parse(clientHandler, e.getMessage()));
                 } catch (Exception exception) {
-                    exception.printStackTrace();
+
                 }
             }
         });
         clientHandler.setCloseListener(() -> clientList.remove(clientHandler));
         Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> {
             try {
-                Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileSharing.UP_LEVEL));
+                Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileManager.UP_LEVEL));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -138,7 +138,7 @@ public class CloudServer {
         }
     }
 
-    public FileSharing getFilesSharing() {
+    public FileManager getFilesSharing() {
         return filesSharing;
     }
 

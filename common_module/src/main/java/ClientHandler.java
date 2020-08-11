@@ -25,7 +25,7 @@ public class ClientHandler implements Runnable {
         dataInputStream = new DataInputStream(socket.getInputStream());
         dataOutputStream = new DataOutputStream(socket.getOutputStream());
         user = User.UNREGISTERED;
-        selectedFolder = FileSharing.UP_LEVEL;
+        selectedFolder = FileManager.UP_LEVEL;
         logger.trace("created {}", this);
     }
 

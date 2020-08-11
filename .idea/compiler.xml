@@ -15,7 +15,7 @@
       <module name="client" target="1.8" />
       <module name="common" target="1.8" />
       <module name="common_module" target="1.8" />
-      <module name="FileSharing" target="1.8" />
+      <module name="FileCloud" target="1.8" />
       <module name="server" target="1.8" />
     </bytecodeTargetLevel>
   </component>

@@ -6,12 +6,15 @@ import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Dialogs {
+    private static final Logger logger = LogManager.getLogger(Dialogs.class);
 
     public static File selectFolder(Stage parentStage, String title) {
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -76,6 +79,8 @@ public class Dialogs {
         if (!Thread.currentThread().getName().equals("JavaFX Application Thread")) {
             CountDownLatch inputWaiting = new CountDownLatch(1);
 
+            logger.trace("dialog");
+
             Platform.runLater(() -> {
                 showMessage(title, message, size);
                 inputWaiting.countDown();
@@ -84,7 +89,6 @@ public class Dialogs {
             try {
                 inputWaiting.await();
             } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         } else {
             showMessage(title, message, size);
