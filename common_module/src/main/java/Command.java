@@ -27,7 +27,7 @@ public enum Command {
         void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             String requestedFileName = dis.readUTF();
-            File requestedFile = FileManager.MAIN_FOLDER
+            File requestedFile = FileInfoCollector.MAIN_FOLDER
                     .resolve(requestedFileName)
                     .toFile();
             LogManager.getLogger(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name()).trace(requestedFile);
@@ -40,15 +40,15 @@ public enum Command {
 
             Path selectedFolder = cmdParams.getClientHandler().getSelectedFolder();
             Path folderToSave = cmdParams.getCloudServer() != null ?
-                    selectedFolder == FileManager.UP_LEVEL ? Paths.get(cmdParams.getClientHandler().getUser().getNick())
+                    selectedFolder == FileInfoCollector.UP_LEVEL ? Paths.get(cmdParams.getClientHandler().getUser().getNick())
                             .resolve(selectedFolder) : selectedFolder
                     : null;
 
             Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler(), folderToSave);
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace("received file = {}", filePath);
-            FileManager fileManager = cmdParams.getFileSharing();
-            if (fileManager != null) {
-                fileManager.addNewFile(filePath, cmdParams.getClientHandler());
+            FileInfoCollector fileInfoCollector = cmdParams.getFileSharing();
+            if (fileInfoCollector != null) {
+                fileInfoCollector.addNewFile(filePath, cmdParams.getClientHandler());
                 commandResultListeners.forEach(action -> action.send(filePath));
             }
             //TODO добавление в базу + рассылка всем задействованным
@@ -207,10 +207,10 @@ public enum Command {
     IN_CREATE_FOLDER {
         void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_CREATE_FOLDER.name()).trace(cmdParams);
-            FileManager fileManager = cmdParams.getFileSharing();
-            if (fileManager != null) {
+            FileInfoCollector fileInfoCollector = cmdParams.getFileSharing();
+            if (fileInfoCollector != null) {
                 Path folderPath = new FileHandler().createFolder(cmdParams.getClientHandler());
-                fileManager.addNewFile(folderPath, cmdParams.getClientHandler());
+                fileInfoCollector.addNewFile(folderPath, cmdParams.getClientHandler());
                 LogManager.getLogger(IN_CREATE_FOLDER.name()).trace("папка {} добавлена", folderPath);
                 commandResultListeners.forEach(action -> action.send(folderPath));
             }

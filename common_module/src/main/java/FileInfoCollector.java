@@ -7,13 +7,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
 
-public class FileManager {
+public class FileInfoCollector {
     public static final Path MAIN_FOLDER = Paths.get(System.getProperty("user.dir"), "cloud_files");
     public static final Path UP_LEVEL = Paths.get("");
-    private static final Logger logger = LogManager.getLogger(FileManager.class);
+    private static final Logger logger = LogManager.getLogger(FileInfoCollector.class);
     private FileDb fileDb;
 
-    public FileManager() throws Exception {
+    public FileInfoCollector() throws Exception {
         fileDb = new FileDb(DataBase.getInstance().getConnection());
         fileDb.init();
     }

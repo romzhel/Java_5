@@ -14,6 +14,7 @@ public class FilesInfo {
     private Path folder;
     private List<FileInfo> fileList;
 
+
     private FilesInfo() {
         this.fileList = new ArrayList<>();
     }

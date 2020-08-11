@@ -6,7 +6,7 @@ import java.util.List;
 public class CmdParams {
     private ClientHandler clientHandler;
     private CloudServer cloudServer;
-    private FileManager fileManager;
+    private FileInfoCollector fileInfoCollector;
     private List<String> stringParams;
     private FilesInfo filesInfo;
 
@@ -20,7 +20,7 @@ public class CmdParams {
             if (object instanceof ClientHandler) {
                 result.clientHandler = (ClientHandler) object;
                 result.cloudServer = result.clientHandler.getServer();
-                result.fileManager = result.cloudServer != null ? result.cloudServer.getFilesSharing() : null;
+                result.fileInfoCollector = result.cloudServer != null ? result.cloudServer.getFilesSharing() : null;
             } else if (object instanceof String) {
                 result.stringParams.add(object.toString());
             } else if (object instanceof List) {
@@ -47,8 +47,8 @@ public class CmdParams {
         return cloudServer;
     }
 
-    public FileManager getFileSharing() {
-        return fileManager;
+    public FileInfoCollector getFileSharing() {
+        return fileInfoCollector;
     }
 
     public List<String> getStringParams() {
@@ -64,7 +64,7 @@ public class CmdParams {
         return "CmdParams{" +
                 "clientHandler=" + clientHandler +
                 ", cloudServer=" + cloudServer +
-                ", fileSharing=" + fileManager +
+                ", fileSharing=" + fileInfoCollector +
                 ", stringParams=" + stringParams +
                 ", filesInfo=" + filesInfo +
                 '}';

@@ -85,7 +85,7 @@ public class ClientMainWindowController implements Initializable {
                         if (item == null || empty) {
                             setText(null);
                         } else {
-                            String details = item.isFolder() ? "папка" : FileManager.formatSize(item.getLength());
+                            String details = item.isFolder() ? "папка" : FileInfoCollector.formatSize(item.getLength());
                             setText(String.format("%s [%s]", item.getPath().getFileName().toString(), details));
                         }
                     }

@@ -39,7 +39,7 @@ public class FileHandler {
         String fileName = dis.readUTF();
         long fileLength = dis.readLong();
 
-        File fileToSave = pathToSave != null ? FileManager.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
+        File fileToSave = pathToSave != null ? FileInfoCollector.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
                 Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
 
         byte[] buffer = new byte[BUFFER_SIZE];
@@ -73,7 +73,7 @@ public class FileHandler {
     public Path createFolder(ClientHandler clientHandler) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
         Path folderPath = Paths.get(clientHandler.getUser().getNick()).resolve(dis.readUTF());
-        Path fullFolderPath = FileManager.MAIN_FOLDER.resolve(folderPath);
+        Path fullFolderPath = FileInfoCollector.MAIN_FOLDER.resolve(folderPath);
         if (fullFolderPath.toFile().exists()) {
             throw new RuntimeException("Такая папка уже существует");
         }
