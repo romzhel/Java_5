@@ -1,4 +1,6 @@
+import auth_service.User;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
@@ -16,7 +18,14 @@ public class ClientMainWindow extends Application {
         AnchorPane root = fxmlLoader.load();
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
-        primaryStage.setTitle("Клиент файлообменника");
+        String titleTemplate = "Клиент файлообменника (пользователь: %s)";
+        primaryStage.setTitle(String.format(titleTemplate, User.UNREGISTERED.getNick()));
+        Command.IN_USER_DATA.addCommandResultListener(objects -> {
+            User user = (User) objects[0];
+            Platform.runLater(() -> {
+                primaryStage.setTitle(String.format(titleTemplate, user.getNick()));
+            });
+        });
         primaryStage.show();
 
         primaryStage.setOnCloseRequest(event -> ((ClientMainWindowController) fxmlLoader.getController()).close());

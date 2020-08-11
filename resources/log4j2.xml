@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration level="error">
+    <Properties>
+        <Property name="basePath">logs</Property>
+    </Properties>
+
+    <Appenders>
+        <!--        <File name="FILE" fileName="${basePath}/certBase.log" append="true">-->
+        <!--            <PatternLayout pattern="%d{yyyy-dd-MM HH:mm:ss.SSS} [%-25t] %-5level %logger{36} - %msg%n"/>-->
+        <!--        </File>-->
+
+        <Console name="STDOUT" target="SYSTEM_OUT">
+            <!--            <ThresholdFilter level="trace" onMatch="ACCEPT" onMismatch="DENY"/>-->
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%-25t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+    </Appenders>
+
+    <Loggers>
+        <Root level="trace">
+            <!--            <AppenderRef ref="FILE"/>-->
+            <AppenderRef ref="STDOUT"/>
+        </Root>
+    </Loggers>
+</Configuration>

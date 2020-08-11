@@ -1,120 +1,159 @@
 import auth_service.User;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 public enum Command {
 
-    DOWNLOAD_REQUEST {
-        void execute(CommandParameters cmdParams) throws Exception {
-            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
-            dos.writeUTF(RECEIVE_DOWNLOAD_REQUEST_AND_SEND_FILE.name());
-            dos.writeUTF(cmdParams.getFile().toString());
-        }
-    },
-    RECEIVE_DOWNLOAD_REQUEST_AND_SEND_FILE {
-        void execute(CommandParameters cmdParams) throws Exception {
-            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
-            File requestedFile = new File(dis.readUTF());
-            if (requestedFile.exists()) {
-                new FileHandler().sendFile(requestedFile, cmdParams.getClientHandler());
+    OUT_DOWNLOAD_REQUEST {
+        void execute(CmdParams cmdParams) throws Exception {
+            if (cmdParams.getStringParams().size() != 1) {
+                throw new RuntimeException("Неверное количество параметров");
             }
+
+            LogManager.getLogger(OUT_DOWNLOAD_REQUEST.name()).trace(cmdParams.getStringParams().get(0));
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name());
+            dos.writeUTF(cmdParams.getStringParams().get(0));
         }
     },
-    RECEIVE_FILE {
-        void execute(CommandParameters cmdParams) throws Exception {
-            File file = new FileHandler().receiveFile(cmdParams.getClientHandler());
-            cmdParams.getFileSharing().addNewFile(file, cmdParams.getClientHandler());
+    IN_DOWNLOAD_REQUEST_AND_SEND_FILE {
+        void execute(CmdParams cmdParams) throws Exception {
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
+            String requestedFileName = dis.readUTF();
+            File requestedFile = FileSharing.MAIN_FOLDER
+                    .resolve(cmdParams.getClientHandler().getSelectedFolder())
+                    .resolve(requestedFileName)
+                    .toFile();
+            LogManager.getLogger(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name()).trace(requestedFile);
+            new FileHandler().sendFile(requestedFile, cmdParams.getClientHandler());
+        }
+    },
+    IN_RECEIVE_FILE {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(IN_RECEIVE_FILE.name()).trace(cmdParams.toString());
+
+            Path folderToSave = cmdParams.getCloudServer() != null ?
+                    Paths.get(cmdParams.getClientHandler().getUser().getNick())
+                            .resolve(cmdParams.getClientHandler().getSelectedFolder()) : null;
+
+            Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler(), folderToSave);
+            LogManager.getLogger(IN_RECEIVE_FILE.name()).trace("received file = {}", filePath);
+            FileSharing fileSharing = cmdParams.getFileSharing();
+            if (fileSharing != null) {
+                fileSharing.addNewFile(filePath, cmdParams.getClientHandler());
+                commandResultListeners.forEach(action -> action.send(filePath));
+            }
             //TODO добавление в базу + рассылка всем задействованным
 
-            commandResultListeners.forEach(action -> action.send(file, cmdParams.getFileSharing().getShareFolder().listFiles()));
         }
     },
-    SEND_FILE {
-        void execute(CommandParameters cmdParams) throws Exception {
-            if (cmdParams.getFile().exists()) {
-                new FileHandler().sendFile(cmdParams.getFile(), cmdParams.getClientHandler());
+    OUT_SEND_FILE {
+        void execute(CmdParams cmdParams) throws Exception {
+            if (cmdParams.getStringParams().size() != 1) {
+                throw new RuntimeException("Неверное количество параметров");
+            }
+
+            LogManager.getLogger(OUT_SEND_FILE.name()).trace(cmdParams);
+            File file = new File(cmdParams.getStringParams().get(0));
+            if (file.exists()) {
+                new FileHandler().sendFile(file, cmdParams.getClientHandler());
             }
         }
     },
-    SEND_FILES_LIST_REQUEST {
-        void execute(CommandParameters cmdParams) throws Exception {
+    OUT_SEND_FILE_LIST_REQUEST {
+        void execute(CmdParams cmdParams) throws Exception {
+            if (cmdParams.getStringParams().size() != 1) {
+                throw new RuntimeException("Неверное количество параметров");
+            }
+
+            LogManager.getLogger(OUT_SEND_FILE_LIST_REQUEST.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
-            dos.writeUTF(FILES_LIST_REQUEST.name());
-            dos.writeUTF(cmdParams.getStringParams()[0]);
+            dos.writeUTF(IN_FILE_LIST_REQUEST.name());
+            dos.writeUTF(cmdParams.getStringParams().get(0));
             dos.flush();
         }
     },
-    FILES_LIST_REQUEST {
-        void execute(CommandParameters cmdParams) throws Exception {
+    IN_FILE_LIST_REQUEST {
+        void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
-            File[] fileList = cmdParams.getFileSharing().getFileList(cmdParams.getClientHandler(), dis.readUTF());
+            String requestedFolder = dis.readUTF();
+            LogManager.getLogger(IN_FILE_LIST_REQUEST.name()).trace(requestedFolder);
 
-            SEND_FILES_LIST.execute(CommandParameters.parse(cmdParams.getClientHandler(), fileList));
+            OUT_SEND_FILE_LIST.execute(CmdParams.parse(cmdParams.getClientHandler(), requestedFolder));
         }
     },
-    SEND_FILES_LIST {
-        void execute(CommandParameters cmdParams) throws Exception {
+    OUT_SEND_FILE_LIST {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
-            dos.writeUTF(FILES_LIST.name());
-            dos.writeInt(cmdParams.getFileArray().length);
-            for (int i = 0; i < cmdParams.getFileArray().length; i++) {
-                dos.writeUTF(cmdParams.getFileArray()[i].toString());
-            }
+            dos.writeUTF(IN_FILES_LIST.name());
+            FilesInfo filesInfo = cmdParams.getFileSharing().getFilesInfo(cmdParams.getClientHandler(),
+                    Paths.get(cmdParams.getStringParams().get(0)));
+            LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace(filesInfo);
+            filesInfo.sendTo(cmdParams.getClientHandler());
             dos.flush();
+            cmdParams.getClientHandler().setSelectedFolder(filesInfo.getFolder());
         }
     },
-    FILES_LIST {
-        void execute(CommandParameters cmdParams) throws Exception {
-            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
-            List<File> fileList = new ArrayList<>();
-            int count = dis.readInt();
-            for (int i = 0; i < count; i++) {
-                fileList.add(new File(dis.readUTF()));
-            }
+    IN_FILES_LIST {
+        void execute(CmdParams cmdParams) throws Exception {
+            FilesInfo filesInfo = FilesInfo.create().getFrom(cmdParams.getClientHandler());
+            cmdParams.getClientHandler().setSelectedFolder(filesInfo.getFolder());
+            LogManager.getLogger(IN_FILES_LIST.name()).trace(filesInfo);
 
-            commandResultListeners.forEach(action -> action.send(fileList.toArray()));
+            commandResultListeners.forEach(action -> action.send(filesInfo));
         }
     },
     OK {
-        void execute(CommandParameters cmdParams) throws Exception {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OK.name()).trace(cmdParams);
             System.out.println("/ok");
         }
     },
-    SEND_EXIT {
-        void execute(CommandParameters cmdParams) throws Exception {
+    OUT_SEND_EXIT {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_SEND_EXIT.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
-            dos.writeUTF(EXIT.name());
+            dos.writeUTF(IN_EXIT.name());
             dos.flush();
             cmdParams.getClientHandler().close();
         }
     },
-    EXIT {
-        void execute(CommandParameters cmdParams) throws Exception {
-            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+    IN_EXIT {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(IN_EXIT.name()).trace(cmdParams);
             cmdParams.getClientHandler().close();
         }
     },
-    SEND_LOGIN_DATA {
-        void execute(CommandParameters cmdParams) throws Exception {
+    OUT_SEND_LOGIN_DATA {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_SEND_LOGIN_DATA.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
-            dos.writeUTF(LOGIN_DATA.name());
-            dos.writeUTF(cmdParams.getStringParams()[0]);
-            dos.writeUTF(cmdParams.getStringParams()[1]);
+            dos.writeUTF(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name());
+            dos.writeUTF(cmdParams.getStringParams().get(0));
+            dos.writeUTF(cmdParams.getStringParams().get(1));
         }
     },
-    LOGIN_DATA {
-        void execute(CommandParameters cmdParams) throws Exception {
+    IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK {
+        void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             User user = null;
             try {
-                user = cmdParams.getCloudServer().getAuthService().getNickByLoginPass(dis.readUTF(), dis.readUTF());
+                String login = dis.readUTF();
+                String pass = dis.readUTF();
+                LogManager.getLogger(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name()).trace("input data = " + login + "," + pass);
+                user = cmdParams.getClientHandler().getServer().getAuthService().getNickByLoginPass(login, pass);
+                LogManager.getLogger(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name()).trace(user);
                 cmdParams.getClientHandler().setUser(user);
-                dos.writeUTF(USER_DATA.name());
+                dos.writeUTF(IN_USER_DATA.name());
                 dos.writeInt(user.getId());
                 dos.writeUTF(user.getNick());
 
@@ -122,30 +161,58 @@ public enum Command {
                     rs.send(user);
                 }
             } catch (Exception e) {
-                SEND_ERROR.execute(CommandParameters.parse(cmdParams.getClientHandler(), new String[]{e.getMessage()}));
+                LogManager.getLogger(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name()).trace(e.getMessage());
+                OUT_SEND_ERROR.execute(CmdParams.parse(cmdParams.getClientHandler(), new String[]{e.getMessage()}));
             }
         }
     },
-    USER_DATA {
-        void execute(CommandParameters cmdParams) throws Exception {
+    IN_USER_DATA {
+        void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             User user = new User(dis.readInt(), dis.readUTF());
+            LogManager.getLogger(IN_USER_DATA.name()).trace(user);
             for (ResultListener rs : commandResultListeners) {
                 rs.send(user);
             }
         }
     },
-    SEND_ERROR {
-        void execute(CommandParameters cmdParams) throws Exception {
+    OUT_SEND_ERROR {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_SEND_ERROR.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
-            dos.writeUTF(ERROR.name());
-            dos.writeUTF(cmdParams.getStringParams()[0]);
+            dos.writeUTF(IN_ERROR.name());
+            dos.writeUTF(cmdParams.getStringParams().get(0));
+            dos.flush();
         }
     },
-    ERROR {
-        void execute(CommandParameters cmdParams) throws Exception {
+    IN_ERROR {
+        void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
-            Dialogs.showMessageTS("Ошибка", dis.readUTF());
+            String errorDetails = dis.readUTF();
+            Dialogs.showMessageTS("Ошибка", errorDetails);
+            LogManager.getLogger(IN_ERROR.name()).trace(errorDetails);
+            dis.skip(dis.available());
+        }
+    },
+    OUT_CREATE_FOLDER {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_CREATE_FOLDER.name()).trace(cmdParams);
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(IN_CREATE_FOLDER.name());
+            dos.writeUTF(cmdParams.getStringParams().get(0));
+            dos.flush();
+        }
+    },
+    IN_CREATE_FOLDER {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(IN_CREATE_FOLDER.name()).trace(cmdParams);
+            FileSharing fileSharing = cmdParams.getFileSharing();
+            if (fileSharing != null) {
+                Path folderPath = new FileHandler().createFolder(cmdParams.getClientHandler());
+                fileSharing.addNewFile(folderPath, cmdParams.getClientHandler());
+                LogManager.getLogger(IN_CREATE_FOLDER.name()).trace("папка {} добавлена", folderPath);
+                commandResultListeners.forEach(action -> action.send(folderPath));
+            }
         }
     };
 
@@ -155,11 +222,10 @@ public enum Command {
         commandResultListeners = new ArrayList<>();
     }
 
-    abstract void execute(CommandParameters commandParameters) throws Exception;
+    abstract void execute(CmdParams commandParameters) throws Exception;
 
     public void addCommandResultListener(ResultListener commandResult) {
-        if (commandResult != null) ;
-        {
+        if (commandResult != null) {
             commandResultListeners.add(commandResult);
         }
     }

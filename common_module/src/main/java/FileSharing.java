@@ -1,71 +1,50 @@
-import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
-import javafx.collections.ObservableList;
+import auth_service.User;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.stream.Collectors;
 
 public class FileSharing {
-    public static final String UP_LEVEL = "UP_LEVEL";
-    private ScheduledExecutorService executorService;
-    private ObservableList<File> fileList;
-    private File shareFolder;
+    public static final Path MAIN_FOLDER = Paths.get(System.getProperty("user.dir"), "cloud_files");
+    public static final Path UP_LEVEL = Paths.get("");
+    private static final Logger logger = LogManager.getLogger(FileSharing.class);
     private FileDb fileDb;
 
-    public FileSharing(File shareFolder) throws Exception {
-        this.shareFolder = shareFolder;
-        fileList = FXCollections.observableList(new ArrayList<>());
-        executorService = Executors.newSingleThreadScheduledExecutor();
+    public FileSharing() throws Exception {
         fileDb = new FileDb(DataBase.getInstance().getConnection());
         fileDb.init();
     }
 
+    public static String formatSize(long v) {
+        if (v < 1024) {
+            return v + " B";
+        }
+        int z = (63 - Long.numberOfLeadingZeros(v)) / 10;
+        return String.format("%.1f %sB", (double) v / (1L << (z * 10)), " kMGTPE".charAt(z));
+    }
+
     public void start() {
-        if (!shareFolder.exists()) {
-            shareFolder.mkdir();
+        if (!MAIN_FOLDER.toFile().exists()) {
+            MAIN_FOLDER.toFile().mkdir();
         }
-        executorService.scheduleAtFixedRate(() -> {
-            File[] files = shareFolder.listFiles();
-            if (files.length != fileList.size()) {
-                fileList.clear();
-                fileList.addAll(files);
+
+        Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> {
+            File userFolder = MAIN_FOLDER.resolve(((User) objects[0]).getNick()).toFile();
+            if (!userFolder.exists()) {
+                userFolder.mkdir();
             }
-        }, 0, 1, TimeUnit.SECONDS);
+        });
     }
 
-    public void addFileListChangeListener(ListChangeListener<File> listChangeListener) {
-        if (listChangeListener != null) {
-            fileList.addListener(listChangeListener);
-        }
-    }
-
-    public void stop() {
-        try {
-            executorService.shutdownNow();
-            executorService.awaitTermination(5, TimeUnit.SECONDS);
-        } catch (Exception e) {
-
-        }
-    }
-
-    public List<File> getFileList() {
-        return fileList;
-    }
-
-    public File getShareFolder() {
-        return shareFolder;
-    }
-
-    public File[] getFileList(ClientHandler clientHandler, String folder) {
+    /*public File[] getFileList(ClientHandler clientHandler, Path folder) {
         if (clientHandler.getUser().getId() != 0) {
             if (folder.equals(UP_LEVEL)) {
-                File userFolder = new File(shareFolder.getPath() + "\\" + clientHandler.getUser().getNick());
-                if (!userFolder.exists()) {
-                    userFolder.mkdir();
+                Path userFolder = Paths.get(shareFolder.toString(), "\\", clientHandler.getUser().getNick());
+                if (!userFolder.toFile().exists()) {
+                    userFolder.toFile().mkdir();
                 }
                 clientHandler.setSelectedFolder(userFolder);
                 return userFolder.listFiles();
@@ -73,9 +52,26 @@ public class FileSharing {
         }
 
         return new File[]{};
+    }*/
+
+    public FilesInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки
+        return FilesInfo.create()
+                .setFolder(folder)
+                .setFileList(fileDb.getFiles(clientHandler.getUser(), folder)
+                        .stream()
+                        .map(path -> MAIN_FOLDER.resolve(path).toFile())
+                        .filter(file -> {
+//                            logger.trace("file {}, exists {}", file, file.exists());
+//                            logger.trace("file parent {}, selected folder {}", file.toPath().getParent(), MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()));
+                            return file.exists() /*&& file.toPath().getParent().equals(MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()))*/;
+                        })
+                        .map(file -> FileInfo.create(file.toPath().subpath(MAIN_FOLDER.getNameCount(), file.toPath().getNameCount()),
+                                file.length(), file.isDirectory()))
+                        .collect(Collectors.toList()));
     }
 
-    public void addNewFile(File file, ClientHandler clientHandler) throws Exception {
-        fileDb.saveNewFile(file.toString(), clientHandler.getUser().getId());
+    public void addNewFile(Path path, ClientHandler clientHandler) throws Exception {
+        logger.trace("добавление файла {}", path);
+        fileDb.saveNewFile(path.toString(), clientHandler.getUser().getId());
     }
 }

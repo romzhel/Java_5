@@ -3,29 +3,50 @@ import auth_service.SqliteAuthService;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import java.io.File;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class CloudServer {
-    private static final String DEFAULT_FOLDER = System.getProperty("user.dir") + "\\cloud_files";
+    private static final Logger logger = LogManager.getLogger(CloudServer.class);
     private static CloudServer instance;
     private FileSharing filesSharing;
     private ObservableList<ClientHandler> clientList;
     private ServerSocket serverSocket;
     private ExecutorService executorService;
     private AuthService authService;
+    private FolderWatcherService folderWatcherService;
 
     private CloudServer() throws Exception {
-        filesSharing = new FileSharing(new File(DEFAULT_FOLDER));
+        filesSharing = new FileSharing();
         executorService = Executors.newFixedThreadPool(4);
         clientList = FXCollections.observableList(new ArrayList<>());
         authService = new SqliteAuthService(DataBase.getInstance().getConnection());
+        /*folderWatcherService = FolderWatcherService.create()
+                .setFolder(FileSharing.MAIN_FOLDER)
+                .addChangeListener(changedFolder -> {
+                    for (ClientHandler clientHandler : clientList) {
+                        Path currentFolderFull = FileSharing.MAIN_FOLDER
+                                .resolve(clientHandler.getUser().getNick())
+                                .resolve(clientHandler.getSelectedFolder());
+                        logger.trace("changed folder = {}, client handler folder = {}", changedFolder, currentFolderFull);
+                        if (changedFolder.equals(currentFolderFull)) {
+                            try {
+                                Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                });*/
     }
 
     public static CloudServer getInstance() throws Exception {
@@ -36,60 +57,36 @@ public class CloudServer {
     }
 
     public void init() {
-        /*filesSharing.addFileListChangeListener(c -> {
-            for (ClientHandler clientHandler : clientList) {
+        Command.IN_RECEIVE_FILE.addCommandResultListener(this::refreshClients);
+        Command.IN_CREATE_FOLDER.addCommandResultListener(this::refreshClients);
+    }
+
+    private void refreshClients(Object[] objects) {
+        logger.trace("аргументы обновления клиентов {}", objects);
+        for (ClientHandler clientHandler : clientList) {
+            Path currentFolder = Paths.get(clientHandler.getUser().getNick()).resolve(clientHandler.getSelectedFolder());
+            if (((Path) objects[0]).getParent().equals(currentFolder)) {
                 try {
-                    Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, c.getList()));
+                    logger.trace("обновление клиента {} папки {}", clientHandler, clientHandler.getSelectedFolder());
+                    Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        });*/
-        Command.RECEIVE_FILE.addCommandResultListener(objects -> {
-            for (ClientHandler clientHandler : clientList) {
-                if ((objects[0]).toString().startsWith(clientHandler.getSelectedFolder().toString())) {
-                    try {
-                        Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler,
-                                clientHandler.getSelectedFolder().listFiles()));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        });
+        }
     }
 
     public void start() {
-        filesSharing.start();
         executorService.submit(() -> {
             try {
+                filesSharing.start();
+//                folderWatcherService.start();
                 authService.start();
                 serverSocket = new ServerSocket(8189);
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    ClientHandler clientHandler = new ClientHandler(socket);
-                    clientList.add(clientHandler);
-//                    Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler, filesSharing.getFileList()));
-                    clientHandler.setMessageListener(message -> {
-                        try {
-                            Command.valueOf(message).execute(CommandParameters.parse(clientHandler, filesSharing, this));
-                        } catch (Exception e) {
-                            try {
-                                Command.SEND_ERROR.execute(CommandParameters.parse(clientHandler, new String[]{e.getMessage()}));
-                            } catch (Exception exception) {
-                                exception.printStackTrace();
-                            }
-                        }
-                    });
-                    clientHandler.setCloseListener(() -> clientList.remove(clientHandler));
-                    Command.LOGIN_DATA.addCommandResultListener(objects -> {
-                        try {
-                            Command.SEND_FILES_LIST.execute(CommandParameters.parse(clientHandler,
-                                    filesSharing.getFileList(clientHandler, FileSharing.UP_LEVEL)));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    });
+                    ClientHandler clientHandler = new ClientHandler(this, socket);
+                    initClientHandler(clientHandler);
                     executorService.submit(clientHandler);
                 }
             } catch (Exception e) {
@@ -100,8 +97,31 @@ public class CloudServer {
         });
     }
 
+    private void initClientHandler(ClientHandler clientHandler) throws Exception {
+        clientList.add(clientHandler);
+        Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileSharing.UP_LEVEL));
+        clientHandler.setMessageListener(message -> {
+            try {
+                Command.valueOf(message).execute(CmdParams.parse(clientHandler));
+            } catch (Exception e) {
+                try {
+                    Command.OUT_SEND_ERROR.execute(CmdParams.parse(clientHandler, e.getMessage()));
+                } catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+            }
+        });
+        clientHandler.setCloseListener(() -> clientList.remove(clientHandler));
+        Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> {
+            try {
+                Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileSharing.UP_LEVEL));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     public void stop() {
-        filesSharing.stop();
         try {
             DataBase.getInstance().disconnect();
         } catch (Exception e) {
@@ -128,5 +148,9 @@ public class CloudServer {
 
     public synchronized ObservableList<ClientHandler> getClientList() {
         return clientList;
+    }
+
+    public FolderWatcherService getFolderWatcherService() {
+        return folderWatcherService;
     }
 }
