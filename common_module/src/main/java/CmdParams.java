@@ -20,7 +20,7 @@ public class CmdParams {
             if (object instanceof ClientHandler) {
                 result.clientHandler = (ClientHandler) object;
                 result.cloudServer = result.clientHandler.getServer();
-                result.fileInfoCollector = result.cloudServer != null ? result.cloudServer.getFilesSharing() : null;
+                result.fileInfoCollector = result.cloudServer != null ? result.cloudServer.getFileInfoCollector() : null;
             } else if (object instanceof String) {
                 result.stringParams.add(object.toString());
             } else if (object instanceof List) {
@@ -47,7 +47,7 @@ public class CmdParams {
         return cloudServer;
     }
 
-    public FileInfoCollector getFileSharing() {
+    public FileInfoCollector getFileInfoCollector() {
         return fileInfoCollector;
     }
 

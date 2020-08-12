@@ -46,7 +46,7 @@ public enum Command {
 
             Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler(), folderToSave);
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace("received file = {}", filePath);
-            FileInfoCollector fileInfoCollector = cmdParams.getFileSharing();
+            FileInfoCollector fileInfoCollector = cmdParams.getFileInfoCollector();
             if (fileInfoCollector != null) {
                 fileInfoCollector.addNewFile(filePath, cmdParams.getClientHandler());
                 commandResultListeners.forEach(action -> action.send(filePath));
@@ -95,7 +95,7 @@ public enum Command {
             LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_FILES_LIST.name());
-            FilesInfo filesInfo = cmdParams.getFileSharing().getFilesInfo(cmdParams.getClientHandler(),
+            FilesInfo filesInfo = cmdParams.getFileInfoCollector().getFilesInfo(cmdParams.getClientHandler(),
                     Paths.get(cmdParams.getStringParams().get(0)));
             LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace(filesInfo);
             filesInfo.sendTo(cmdParams.getClientHandler());
@@ -207,7 +207,7 @@ public enum Command {
     IN_CREATE_FOLDER {
         void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_CREATE_FOLDER.name()).trace(cmdParams);
-            FileInfoCollector fileInfoCollector = cmdParams.getFileSharing();
+            FileInfoCollector fileInfoCollector = cmdParams.getFileInfoCollector();
             if (fileInfoCollector != null) {
                 Path folderPath = new FileHandler().createFolder(cmdParams.getClientHandler());
                 fileInfoCollector.addNewFile(folderPath, cmdParams.getClientHandler());

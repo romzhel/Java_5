@@ -10,22 +10,20 @@ import javafx.util.Callback;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.File;
 import java.net.URL;
 import java.util.ResourceBundle;
 
 
 public class ServerMainWindowController implements Initializable {
+    private static final Logger logger = LogManager.getLogger(ServerMainWindowController.class);
     @FXML
-    private ListView<File> lvFiles;
+    private ListView<FileInfo> lvFiles;
     @FXML
     private Label lblStatus;
     @FXML
     private ListView<ClientHandler> lvClients;
     @FXML
     private Button btnClose;
-
-    private static final Logger logger = LogManager.getLogger(ServerMainWindowController.class);
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -74,25 +72,41 @@ public class ServerMainWindowController implements Initializable {
         });
 
 
-        lvFiles.setCellFactory(new Callback<ListView<File>, ListCell<File>>() {
+        lvFiles.setCellFactory(new Callback<ListView<FileInfo>, ListCell<FileInfo>>() {
             @Override
-            public ListCell<File> call(ListView<File> param) {
-                return new ListCell<File>() {
+            public ListCell<FileInfo> call(ListView<FileInfo> param) {
+                return new ListCell<FileInfo>() {
                     @Override
-                    protected void updateItem(File item, boolean empty) {
+                    protected void updateItem(FileInfo item, boolean empty) {
                         super.updateItem(item, empty);
 
                         if (item == null || empty) {
                             setText(null);
                         } else {
-                            String info = item.isFile() ? String.valueOf(item.length()) :
-                                    "папка, файлов: " + item.listFiles().length;
-                            setText(String.format("%s [%s]\n", item.getName(), info));
+                            String fileInfo = String.format("%s [%s]", item.getPath(),
+                                    FileInfoCollector.formatSize(item.getLength()));
+                            String folderInfo = String.format("%s [папок: %d, файлов: %d; %s]",
+                                    item.getPath().getFileName(), item.getFoldersCount(), item.getFilesCount(),
+                                    FileInfoCollector.formatSize(item.getLength()));
+                            setText(item.isFolder() ? folderInfo : fileInfo);
                         }
                     }
                 };
             }
         });
+
+
+        try {
+            lvFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER).getFileList());
+            FolderWatcherService.getInstance().addChangeListener(changedFolder -> {
+                Platform.runLater(() -> {
+                    lvFiles.getItems().clear();
+                    lvFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER).getFileList());
+                });
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         btnClose.setOnAction(event -> Platform.exit());
     }

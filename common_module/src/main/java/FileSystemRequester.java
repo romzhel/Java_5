@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 public class FileSystemRequester extends SimpleFileVisitor<Path> {
     private static FileSystemRequester instance;
+    private Path path;
     private long size;
     private int folderCount;
     private int filesCount;
@@ -15,10 +16,18 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
     private FileSystemRequester() {
     }
 
-    public static FilesInfo getFullPathInfo(Path path) throws IOException {
-        return FilesInfo.create()
-                .setFolder(FileInfoCollector.MAIN_FOLDER.relativize(path))
-                .setFileList(Files.walk(path).map(FileSystemRequester::getPathInfo).collect(Collectors.toList()));
+    public static FilesInfo getDetailedPathInfo(Path fullPath) {
+        System.out.println("fullPath = " + fullPath);
+        try {
+            return FilesInfo.create()
+                    .setFolder(FileInfoCollector.MAIN_FOLDER.relativize(fullPath))
+                    .setFileList(Files.walk(fullPath)
+                            .filter(path1 -> path1.getParent().equals(fullPath))
+                            .map(FileSystemRequester::getPathInfo).collect(Collectors.toList()));
+        } catch (IOException e) {
+            e.printStackTrace();
+            return FilesInfo.create();
+        }
     }
 
     public static FileInfo getPathInfo(Path path) {
@@ -26,8 +35,9 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
             instance = new FileSystemRequester();
         }
 
+        instance.path = path;
         instance.size = 0;
-        instance.folderCount = -1;
+        instance.folderCount = 0;
         instance.filesCount = 0;
 
         try {
@@ -51,7 +61,9 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-        folderCount++;
+        if (!dir.equals(path)) {
+            folderCount++;
+        }
         return FileVisitResult.CONTINUE;
     }
 }

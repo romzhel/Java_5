@@ -5,13 +5,13 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.stream.Collectors;
 
 public class FileInfoCollector {
     public static final Path MAIN_FOLDER = Paths.get(System.getProperty("user.dir"), "cloud_files");
     public static final Path UP_LEVEL = Paths.get("");
     private static final Logger logger = LogManager.getLogger(FileInfoCollector.class);
     private FileDb fileDb;
+    private FolderWatcherService folderWatcherService;
 
     public FileInfoCollector() throws Exception {
         fileDb = new FileDb(DataBase.getInstance().getConnection());
@@ -26,7 +26,7 @@ public class FileInfoCollector {
         return String.format("%.1f %sB", (double) v / (1L << (z * 10)), " KMGTPE".charAt(z));
     }
 
-    public void start() {
+    public void start() throws Exception {
         if (!MAIN_FOLDER.toFile().exists()) {
             MAIN_FOLDER.toFile().mkdir();
         }
@@ -37,10 +37,30 @@ public class FileInfoCollector {
                 userFolder.mkdir();
             }
         });
+
+        folderWatcherService = FolderWatcherService.getInstance()
+                .addFolder(MAIN_FOLDER)
+                .addChangeListener(changedFolder -> {
+                    try {
+                        for (ClientHandler clientHandler : CloudServer.getInstance().getClientList()) {
+                            logger.trace("changed folder = {}, client handler folder = {}", changedFolder, clientHandler.getSelectedFolder());
+                            if (changedFolder.equals(clientHandler.getSelectedFolder())) {
+                                try {
+                                    Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     public FilesInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки
-        return FilesInfo.create()
+        return FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder));
+        /*return FilesInfo.create()
                 .setFolder(folder)
                 .setFileList(fileDb.getFiles(clientHandler.getUser(), folder)
                         .stream()
@@ -48,23 +68,19 @@ public class FileInfoCollector {
                         .filter(file -> {
 //                            logger.trace("file {}, exists {}", file, file.exists());
 //                            logger.trace("file parent {}, selected folder {}", file.toPath().getParent(), MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()));
-                            return file.exists() /*&& file.toPath().getParent().equals(MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()))*/;
+                            return file.exists() *//*&& file.toPath().getParent().equals(MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()))*//*;
                         })
                         .map(file -> FileInfo.create(file.toPath().subpath(MAIN_FOLDER.getNameCount(), file.toPath().getNameCount()),
                                 file.length(), file.isDirectory()))
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toList()));*/
     }
 
     public void addNewFile(Path path, ClientHandler clientHandler) throws Exception {
         logger.trace("добавление файла {}", path);
-        fileDb.saveNewFile(path.toString(), clientHandler.getUser().getId());
+//        fileDb.saveNewFile(path.toString(), clientHandler.getUser().getId());
     }
 
-    public void getFolderInfo(Path folderPath) {
-        long size = 0;
-        int filesCount = 0;
-        int folderCount = 0;
-
-
+    public FolderWatcherService getFolderWatcherService() {
+        return folderWatcherService;
     }
 }

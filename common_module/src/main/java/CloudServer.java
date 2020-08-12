@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 public class CloudServer {
     private static final Logger logger = LogManager.getLogger(CloudServer.class);
     private static CloudServer instance;
-    private FileInfoCollector filesSharing;
+    private FileInfoCollector fileInfoCollector;
     private ObservableList<ClientHandler> clientList;
     private ServerSocket serverSocket;
     private ExecutorService executorService;
@@ -26,27 +26,10 @@ public class CloudServer {
     private FolderWatcherService folderWatcherService;
 
     private CloudServer() throws Exception {
-        filesSharing = new FileInfoCollector();
+        fileInfoCollector = new FileInfoCollector();
         executorService = Executors.newFixedThreadPool(4);
         clientList = FXCollections.observableList(new ArrayList<>());
         authService = new SqliteAuthService(DataBase.getInstance().getConnection());
-        /*folderWatcherService = FolderWatcherService.create()
-                .setFolder(FileSharing.MAIN_FOLDER)
-                .addChangeListener(changedFolder -> {
-                    for (ClientHandler clientHandler : clientList) {
-                        Path currentFolderFull = FileSharing.MAIN_FOLDER
-                                .resolve(clientHandler.getUser().getNick())
-                                .resolve(clientHandler.getSelectedFolder());
-                        logger.trace("changed folder = {}, client handler folder = {}", changedFolder, currentFolderFull);
-                        if (changedFolder.equals(currentFolderFull)) {
-                            try {
-                                Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                });*/
     }
 
     public static CloudServer getInstance() throws Exception {
@@ -57,15 +40,20 @@ public class CloudServer {
     }
 
     public void init() {
-        Command.IN_RECEIVE_FILE.addCommandResultListener(this::refreshClients);
-        Command.IN_CREATE_FOLDER.addCommandResultListener(this::refreshClients);
+//        Command.IN_RECEIVE_FILE.addCommandResultListener(this::refreshClients);
+//        Command.IN_CREATE_FOLDER.addCommandResultListener(this::refreshClients);
+        try {
+            FolderWatcherService.getInstance().addChangeListener(this::refreshClientsFileList);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    private void refreshClients(Object[] objects) {
+    private void refreshClientsFileList(Object... objects) {
         logger.trace("аргументы обновления клиентов {}", objects);
         for (ClientHandler clientHandler : clientList) {
             Path currentFolder = Paths.get(clientHandler.getUser().getNick()).resolve(clientHandler.getSelectedFolder());
-            if (((Path) objects[0]).getParent().equals(currentFolder)) {
+            if (((Path) objects[0]).equals(currentFolder)) {
                 try {
                     logger.trace("обновление клиента {} папки {}", clientHandler, clientHandler.getSelectedFolder());
                     Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
@@ -77,12 +65,14 @@ public class CloudServer {
     }
 
     public void start() {
+        logger.trace("запуск сервера");
         executorService.submit(() -> {
             try {
-                filesSharing.start();
+                fileInfoCollector.start();
 //                folderWatcherService.start();
                 authService.start();
                 serverSocket = new ServerSocket(8189);
+                logger.trace("сервер запущен, ожидание подключения клиентов");
                 while (true) {
                     Socket socket = serverSocket.accept();
                     ClientHandler clientHandler = new ClientHandler(this, socket);
@@ -90,7 +80,8 @@ public class CloudServer {
                     executorService.submit(clientHandler);
                 }
             } catch (Exception e) {
-                Dialogs.showMessage("Ошибка инициализации сервера", e.getMessage());
+                Dialogs.showMessageTS("Ошибка инициализации сервера", e.getMessage() + "\n\n" + e.toString());
+                e.printStackTrace();
                 stop();
                 Platform.exit();
             }
@@ -99,7 +90,7 @@ public class CloudServer {
 
     private void initClientHandler(ClientHandler clientHandler) throws Exception {
         clientList.add(clientHandler);
-        Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileInfoCollector.UP_LEVEL));
+//        Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileInfoCollector.UP_LEVEL));
         clientHandler.setMessageListener(message -> {
             try {
                 Command.valueOf(message).execute(CmdParams.parse(clientHandler));
@@ -138,8 +129,8 @@ public class CloudServer {
         }
     }
 
-    public FileInfoCollector getFilesSharing() {
-        return filesSharing;
+    public FileInfoCollector getFileInfoCollector() {
+        return fileInfoCollector;
     }
 
     public AuthService getAuthService() {
