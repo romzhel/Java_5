@@ -10,7 +10,7 @@ public class FileInfo {
     private int filesCount;
     private int foldersCount;
 
-    public FileInfo(Path path, long length, boolean isFolder) {
+    private FileInfo(Path path, long length, boolean isFolder) {
         this.path = path;
         this.length = length;
         this.isFolder = isFolder;

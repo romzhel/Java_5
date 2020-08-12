@@ -37,22 +37,10 @@ public enum Command {
     IN_RECEIVE_FILE {
         void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace(cmdParams);
-
             Path selectedFolder = cmdParams.getClientHandler().getSelectedFolder();
-            Path folderToSave = cmdParams.getCloudServer() != null ?
-                    selectedFolder == FileInfoCollector.UP_LEVEL ? Paths.get(cmdParams.getClientHandler().getUser().getNick())
-                            .resolve(selectedFolder) : selectedFolder
-                    : null;
-
-            Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler(), folderToSave);
+            Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler(), selectedFolder);
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace("received file = {}", filePath);
-            FileInfoCollector fileInfoCollector = cmdParams.getFileInfoCollector();
-            if (fileInfoCollector != null) {
-                fileInfoCollector.addNewFile(filePath, cmdParams.getClientHandler());
-                commandResultListeners.forEach(action -> action.send(filePath));
-            }
-            //TODO добавление в базу + рассылка всем задействованным
-
+            commandResultListeners.forEach(action -> action.send(filePath));
         }
     },
     OUT_SEND_FILE {
@@ -97,10 +85,11 @@ public enum Command {
             dos.writeUTF(IN_FILES_LIST.name());
             FilesInfo filesInfo = cmdParams.getFileInfoCollector().getFilesInfo(cmdParams.getClientHandler(),
                     Paths.get(cmdParams.getStringParams().get(0)));
-            LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace(filesInfo);
+            LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace("отправка списка файлов клиенту {}", filesInfo);
             filesInfo.sendTo(cmdParams.getClientHandler());
             dos.flush();
             cmdParams.getClientHandler().setSelectedFolder(filesInfo.getFolder());
+            //TODO
         }
     },
     IN_FILES_LIST {
@@ -150,9 +139,9 @@ public enum Command {
             try {
                 String login = dis.readUTF();
                 String pass = dis.readUTF();
-                LogManager.getLogger(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name()).trace("input data = " + login + "," + pass);
                 user = cmdParams.getClientHandler().getServer().getAuthService().getNickByLoginPass(login, pass);
-                LogManager.getLogger(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name()).trace(user);
+                LogManager.getLogger(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name()).trace("input {} {}, user {}",
+                        login, pass, user);
                 cmdParams.getClientHandler().setUser(user);
                 dos.writeUTF(IN_USER_DATA.name());
                 dos.writeInt(user.getId());

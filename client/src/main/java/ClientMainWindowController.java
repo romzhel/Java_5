@@ -100,7 +100,8 @@ public class ClientMainWindowController implements Initializable {
                 logger.trace("выбран элемент {}, папка = {}", selectedFileInfo, selectedFileInfo.isFolder());
                 if (selectedFileInfo.isFolder()) {
                     try {
-                        Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
+                        Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(
+                                clientHandler, selectedFileInfo.getPath()));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -113,18 +114,20 @@ public class ClientMainWindowController implements Initializable {
         NavigationPane navigationPane = new NavigationPane(fpNavigationPane, Paths.get("..."));
         navigationPane.addNavigationListener(path -> {
             logger.trace("request navigation to {}", path);
+            Path fullPath = Paths.get(clientHandler.getUser().getNick()).resolve(path);
             try {
-                Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, path));
+                Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, fullPath));
             } catch (Exception e) {
                 e.printStackTrace();
             }
         });
 
         Command.IN_FILES_LIST.addCommandResultListener(objects -> Platform.runLater(() -> {
+            Path userPath = Paths.get(clientHandler.getUser().getNick());
             FilesInfo filesInfo = (FilesInfo) objects[0];
             lvFiles.getItems().clear();
             lvFiles.getItems().addAll(filesInfo.getFileList());
-            navigationPane.setAddress(filesInfo.getFolder());
+            navigationPane.setAddress(userPath.relativize(filesInfo.getFolder()));
         }));
 
         btnDownload.setOnAction(event -> {

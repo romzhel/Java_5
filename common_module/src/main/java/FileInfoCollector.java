@@ -11,7 +11,6 @@ public class FileInfoCollector {
     public static final Path UP_LEVEL = Paths.get("");
     private static final Logger logger = LogManager.getLogger(FileInfoCollector.class);
     private FileDb fileDb;
-    private FolderWatcherService folderWatcherService;
 
     public FileInfoCollector() throws Exception {
         fileDb = new FileDb(DataBase.getInstance().getConnection());
@@ -37,25 +36,6 @@ public class FileInfoCollector {
                 userFolder.mkdir();
             }
         });
-
-        folderWatcherService = FolderWatcherService.getInstance()
-                .addFolder(MAIN_FOLDER)
-                .addChangeListener(changedFolder -> {
-                    try {
-                        for (ClientHandler clientHandler : CloudServer.getInstance().getClientList()) {
-                            logger.trace("changed folder = {}, client handler folder = {}", changedFolder, clientHandler.getSelectedFolder());
-                            if (changedFolder.equals(clientHandler.getSelectedFolder())) {
-                                try {
-                                    Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
     }
 
     public FilesInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки
@@ -76,11 +56,7 @@ public class FileInfoCollector {
     }
 
     public void addNewFile(Path path, ClientHandler clientHandler) throws Exception {
-        logger.trace("добавление файла {}", path);
+//        logger.trace("добавление файла {}", path);
 //        fileDb.saveNewFile(path.toString(), clientHandler.getUser().getId());
-    }
-
-    public FolderWatcherService getFolderWatcherService() {
-        return folderWatcherService;
     }
 }

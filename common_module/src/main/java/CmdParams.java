@@ -63,8 +63,6 @@ public class CmdParams {
     public String toString() {
         return "CmdParams{" +
                 "clientHandler=" + clientHandler +
-                ", cloudServer=" + cloudServer +
-                ", fileSharing=" + fileInfoCollector +
                 ", stringParams=" + stringParams +
                 ", filesInfo=" + filesInfo +
                 '}';

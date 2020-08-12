@@ -47,12 +47,6 @@ public class ServerMainWindowController implements Initializable {
                     }
                 });
             });
-
-            /*Command.IN_RECEIVE_FILE.addCommandResultListener(objects -> Platform.runLater(() -> {
-                lvFiles.getItems().clear();
-                lvFiles.getItems().addAll((File[]) objects[0]);
-            }));*/
-            //TODO
         } catch (Exception e) {
             Dialogs.showMessageTS("Ошибка инициализации сервера", e.getMessage());
         }
@@ -95,18 +89,23 @@ public class ServerMainWindowController implements Initializable {
             }
         });
 
-
         try {
             lvFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER).getFileList());
             FolderWatcherService.getInstance().addChangeListener(changedFolder -> {
                 Platform.runLater(() -> {
+                    FilesInfo filesInfo = FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER);
                     lvFiles.getItems().clear();
-                    lvFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER).getFileList());
+                    lvFiles.getItems().addAll(filesInfo.getFileList());
+                    logger.trace("refresh list view on server {}", filesInfo);
                 });
             });
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        lvFiles.itemsProperty().addListener((observable, oldValue, newValue) -> {
+            logger.trace("list view update {} -> {}", oldValue, newValue);
+        });
 
         btnClose.setOnAction(event -> Platform.exit());
     }

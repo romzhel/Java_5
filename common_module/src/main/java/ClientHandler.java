@@ -7,6 +7,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.Socket;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class ClientHandler implements Runnable {
     private static final Logger logger = LogManager.getLogger(ClientHandler.class);
@@ -79,6 +80,7 @@ public class ClientHandler implements Runnable {
 
     public void setUser(User user) {
         this.user = user;
+        selectedFolder = Paths.get(user.getNick());
     }
 
     public interface MessageListener {
@@ -104,6 +106,7 @@ public class ClientHandler implements Runnable {
     public void setCloseListener(CloseListener closeListener) {
         this.closeListener = closeListener;
     }
+
 
     @Override
     public String toString() {

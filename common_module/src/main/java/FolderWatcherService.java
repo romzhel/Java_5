@@ -92,10 +92,9 @@ public class FolderWatcherService implements Runnable {
             for (WatchEvent<?> watchEvent : queuedKey.pollEvents()) {
                 Path fullPath = keyPathMap.get(queuedKey).resolve((Path) watchEvent.context());
                 registerDir(fullPath, watchService);
+                logger.debug("обновлено {} в папке '{}'", fullPath,
+                        FileInfoCollector.MAIN_FOLDER.relativize(keyPathMap.get(queuedKey)));
                 changeListeners.forEach(action -> {
-                    System.out.println(keyPathMap.get(queuedKey));
-                    System.out.println(FileInfoCollector.MAIN_FOLDER);
-                    System.out.println(FileInfoCollector.MAIN_FOLDER.relativize(keyPathMap.get(queuedKey)));
                     action.onChanged(FileInfoCollector.MAIN_FOLDER.relativize(keyPathMap.get(queuedKey)));
                 });
             }

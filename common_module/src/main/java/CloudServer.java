@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,7 +42,9 @@ public class CloudServer {
 //        Command.IN_RECEIVE_FILE.addCommandResultListener(this::refreshClients);
 //        Command.IN_CREATE_FOLDER.addCommandResultListener(this::refreshClients);
         try {
-            FolderWatcherService.getInstance().addChangeListener(this::refreshClientsFileList);
+            FolderWatcherService.getInstance()
+                    .addFolder(FileInfoCollector.MAIN_FOLDER)
+                    .addChangeListener(this::refreshClientsFileList);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,11 +53,11 @@ public class CloudServer {
     private void refreshClientsFileList(Object... objects) {
         logger.trace("аргументы обновления клиентов {}", objects);
         for (ClientHandler clientHandler : clientList) {
-            Path currentFolder = Paths.get(clientHandler.getUser().getNick()).resolve(clientHandler.getSelectedFolder());
+            Path currentFolder = clientHandler.getSelectedFolder();
             if (((Path) objects[0]).equals(currentFolder)) {
                 try {
-                    logger.trace("обновление клиента {} папки {}", clientHandler, clientHandler.getSelectedFolder());
-                    Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
+                    logger.trace("обновление клиента {} папки {}", clientHandler, currentFolder);
+                    Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, currentFolder));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -105,7 +106,7 @@ public class CloudServer {
         clientHandler.setCloseListener(() -> clientList.remove(clientHandler));
         Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> {
             try {
-                Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileInfoCollector.UP_LEVEL));
+                Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
             } catch (Exception e) {
                 e.printStackTrace();
             }

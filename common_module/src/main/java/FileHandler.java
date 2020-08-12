@@ -34,10 +34,10 @@ public class FileHandler {
     }
 
     public Path receiveFile(ClientHandler clientHandler, Path pathToSave) throws Exception {
-        logger.trace("будет принят файл {}", pathToSave);
         DataInputStream dis = clientHandler.getDataInputStream();
         String fileName = dis.readUTF();
         long fileLength = dis.readLong();
+        logger.trace("будет принят файл {}", pathToSave.resolve(fileName));
 
         File fileToSave = pathToSave != null ? FileInfoCollector.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
                 Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
