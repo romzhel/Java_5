@@ -16,31 +16,39 @@ public enum Command {
             if (cmdParams.getStringParams().size() != 1) {
                 throw new RuntimeException("Неверное количество параметров");
             }
+            Path relativeFilePath = Paths.get(cmdParams.getStringParams().get(0));
+            File fileSaveLocation = Dialogs.selectAnyFileTS(null, "Выбор места сохранения",
+                    relativeFilePath.getFileName().toString());
 
-            LogManager.getLogger(OUT_DOWNLOAD_REQUEST.name()).trace(cmdParams.getStringParams().get(0));
+            if (fileSaveLocation == null) {
+                LogManager.getLogger(OUT_DOWNLOAD_REQUEST.name()).trace("не выбран путь для сохранения, " +
+                        "отмена запроса файла с сервера");
+                return;
+            }
+
+            LogManager.getLogger(OUT_DOWNLOAD_REQUEST.name()).trace("запрос файла {} для сохранения в {}",
+                    relativeFilePath, fileSaveLocation);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name());
-            dos.writeUTF(cmdParams.getStringParams().get(0));
+            dos.writeUTF(relativeFilePath.toString());
+            dos.writeUTF(fileSaveLocation.getPath());
             dos.flush();
         }
     },
     IN_DOWNLOAD_REQUEST_AND_SEND_FILE {
         void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
-            String requestedFileName = dis.readUTF();
-            File requestedFile = FileInfoCollector.MAIN_FOLDER
-                    .resolve(requestedFileName)
-                    .toFile();
-            LogManager.getLogger(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name()).trace(requestedFile);
-            new FileHandler().sendFile(requestedFile, cmdParams.getClientHandler());
+            Path filePath = Paths.get(dis.readUTF());
+            Path fileSaveLocationPath = Paths.get(dis.readUTF());
+            LogManager.getLogger(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name()).trace("файл {} для сохранения в {}",
+                    filePath, fileSaveLocationPath);
+            new FileHandler().sendFile(cmdParams.getClientHandler(), filePath, fileSaveLocationPath);
         }
     },
     IN_RECEIVE_FILE {
         void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace(cmdParams);
-            Path selectedFolder = cmdParams.getCloudServer() != null ?
-                    cmdParams.getClientHandler().getSelectedFolder() : null;
-            Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler(), selectedFolder);
+            Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler());
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace("received file = {}", filePath);
             commandResultListeners.forEach(action -> action.send(filePath));
         }
@@ -51,11 +59,10 @@ public enum Command {
                 throw new RuntimeException("Неверное количество параметров");
             }
 
-            LogManager.getLogger(OUT_SEND_FILE.name()).trace(cmdParams);
-            File file = new File(cmdParams.getStringParams().get(0));
-            if (file.exists()) {
-                new FileHandler().sendFile(file, cmdParams.getClientHandler());
-            }
+            Path shortFilePath = Paths.get(cmdParams.getStringParams().get(0));
+            LogManager.getLogger(OUT_SEND_FILE.name()).trace(shortFilePath);
+            new FileHandler().sendFile(cmdParams.getClientHandler(), shortFilePath,
+                    cmdParams.getClientHandler().getSelectedFolder().resolve(shortFilePath.getFileName()));
         }
     },
     OUT_SEND_FILE_LIST_REQUEST {

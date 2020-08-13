@@ -23,6 +23,7 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
                     .setFileList(Files.walk(fullPath)
                             .filter(path1 -> path1.getParent().equals(fullPath))
                             .map(FileSystemRequester::getPathInfo)
+                            .sorted((o1, o2) -> (o1.isFolder() ? 0 : 1) - (o2.isFolder() ? 0 : 1))
                             .collect(Collectors.toList()));
         } catch (IOException e) {
             e.printStackTrace();

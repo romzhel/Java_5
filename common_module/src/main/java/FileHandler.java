@@ -1,67 +1,64 @@
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class FileHandler {
     private static final Logger logger = LogManager.getLogger(FileHandler.class);
     private static final int BUFFER_SIZE = 1024;
 
-    public void sendFile(File file, ClientHandler clientHandler) throws Exception {
-        if (!file.exists()) {
-            throw new RuntimeException("Файл " + file + " не найден");
+    public void sendFile(ClientHandler clientHandler, Path fileForSendPath, Path fileSaveLocation) throws Exception {
+        if (fileForSendPath.getRoot() == null) {
+            fileForSendPath = FileInfoCollector.MAIN_FOLDER.resolve(fileForSendPath);
+        }
+
+        if (Files.notExists(fileForSendPath)) {
+            logger.warn("файл '{}' для отправки не найден", fileForSendPath);
+            throw new RuntimeException("Файл " + fileForSendPath + " не найден");
         }
 
         DataOutputStream dos = clientHandler.getDataOutputStream();
         dos.writeUTF(Command.IN_RECEIVE_FILE.name());
-        logger.trace("sent command {}", Command.IN_RECEIVE_FILE.name());
-        dos.writeUTF(file.getName());
-        logger.trace("sent file name {}", file.getName());
-        dos.writeLong(file.length());
-        logger.trace("sent file length {}", file.length());
+        dos.writeUTF(fileSaveLocation.toString());
+        dos.writeLong(Files.size(fileForSendPath));
 
-        logger.trace("sending {} ...", file.getName());
+        logger.trace("sending file '{}' for saving in {} ...", fileForSendPath, fileSaveLocation);
 
-        try (FileInputStream fis = new FileInputStream(file)) {
+        try (FileInputStream fis = new FileInputStream(fileForSendPath.toFile())) {
             byte[] buffer = new byte[BUFFER_SIZE];
             while (fis.available() > 0) {
                 int bytesRead = fis.read(buffer);
                 dos.write(buffer, 0, bytesRead);
             }
             dos.flush();
-            logger.trace("file sent to client");
+            logger.trace("file was sent to client");
         } catch (Exception e) {
             throw e;
         }
     }
 
-    public Path receiveFile(ClientHandler clientHandler, Path pathToSave) throws Exception {
+    public Path receiveFile(ClientHandler clientHandler) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
-        String fileName = dis.readUTF();
-        logger.trace("file name received from client {}", fileName);
+        Path fileSaveLocationPath = Paths.get(dis.readUTF());
         long fileLength = dis.readLong();
-//        logger.trace("будет принят файл {} [{}]", pathToSave.resolve(fileName), FileInfoCollector.formatSize(fileLength));
 
-        File fileToSave = pathToSave != null ? FileInfoCollector.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
-                Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
+//        logger.debug("received data: save location {}", fileSaveLocationPath);
 
-        logger.trace("receiving file...");
+        if (fileSaveLocationPath.getRoot() == null) {
+            fileSaveLocationPath = FileInfoCollector.MAIN_FOLDER.resolve(fileSaveLocationPath);
+        }
+
+//        logger.trace("receiving file to '{}' ...", fileSaveLocationPath);
+        Files.createFile(fileSaveLocationPath);
+
         byte[] buffer = new byte[BUFFER_SIZE];
-
-        /*if (fileToSave == null) {
-            long cycles = fileLength / buffer.length + (fileLength % buffer.length > 0 ? 1 : 0);
-            for (int i = 0; i < cycles; i++) {
-                dis.read(buffer);
-            }
-            throw new RuntimeException("Не выбрано место сохранения файла");
-        }*/
-
-        logger.trace("файл будет сохранен {}", fileToSave);
-        fileToSave.createNewFile();
-
-        try (FileOutputStream fos = new FileOutputStream(fileToSave)) {
+        try (FileOutputStream fos = new FileOutputStream(fileSaveLocationPath.toFile())) {
             int bytesRead;
             long cycles = fileLength / buffer.length + (fileLength % buffer.length > 0 ? 1 : 0);
             for (int i = 0; i < cycles; i++) {
@@ -72,8 +69,8 @@ public class FileHandler {
         } catch (Exception e) {
             throw e;
         }
-
-        return clientHandler.getSelectedFolder().resolve(fileName);
+        return fileSaveLocationPath.startsWith(FileInfoCollector.MAIN_FOLDER) ?
+                FileInfoCollector.MAIN_FOLDER.relativize(fileSaveLocationPath) : fileSaveLocationPath;
     }
 
     public Path createFolder(ClientHandler clientHandler) throws Exception {
