@@ -16,10 +16,13 @@ public class FileHandler {
 
         DataOutputStream dos = clientHandler.getDataOutputStream();
         dos.writeUTF(Command.IN_RECEIVE_FILE.name());
+        logger.trace("sent command {}", Command.IN_RECEIVE_FILE.name());
         dos.writeUTF(file.getName());
+        logger.trace("sent file name {}", file.getName());
         dos.writeLong(file.length());
+        logger.trace("sent file length {}", file.length());
 
-        logger.trace("file name sent {}", file.getName());
+        logger.trace("sending {} ...", file.getName());
 
         try (FileInputStream fis = new FileInputStream(file)) {
             byte[] buffer = new byte[BUFFER_SIZE];
@@ -28,6 +31,7 @@ public class FileHandler {
                 dos.write(buffer, 0, bytesRead);
             }
             dos.flush();
+            logger.trace("file sent to client");
         } catch (Exception e) {
             throw e;
         }
@@ -36,21 +40,23 @@ public class FileHandler {
     public Path receiveFile(ClientHandler clientHandler, Path pathToSave) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
         String fileName = dis.readUTF();
+        logger.trace("file name received from client {}", fileName);
         long fileLength = dis.readLong();
-        logger.trace("будет принят файл {}", pathToSave.resolve(fileName));
+        logger.trace("будет принят файл {} [{}]", pathToSave.resolve(fileName), FileInfoCollector.formatSize(fileLength));
 
         File fileToSave = pathToSave != null ? FileInfoCollector.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
                 Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
 
+        logger.trace("receiving file...");
         byte[] buffer = new byte[BUFFER_SIZE];
 
-        if (fileToSave == null) {
+        /*if (fileToSave == null) {
             long cycles = fileLength / buffer.length + (fileLength % buffer.length > 0 ? 1 : 0);
             for (int i = 0; i < cycles; i++) {
                 dis.read(buffer);
             }
             throw new RuntimeException("Не выбрано место сохранения файла");
-        }
+        }*/
 
         logger.trace("файл будет сохранен {}", fileToSave);
         fileToSave.createNewFile();

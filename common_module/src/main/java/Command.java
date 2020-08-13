@@ -21,6 +21,7 @@ public enum Command {
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name());
             dos.writeUTF(cmdParams.getStringParams().get(0));
+            dos.flush();
         }
     },
     IN_DOWNLOAD_REQUEST_AND_SEND_FILE {
@@ -37,7 +38,8 @@ public enum Command {
     IN_RECEIVE_FILE {
         void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace(cmdParams);
-            Path selectedFolder = cmdParams.getClientHandler().getSelectedFolder();
+            Path selectedFolder = cmdParams.getCloudServer() != null ?
+                    cmdParams.getClientHandler().getSelectedFolder() : null;
             Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler(), selectedFolder);
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace("received file = {}", filePath);
             commandResultListeners.forEach(action -> action.send(filePath));

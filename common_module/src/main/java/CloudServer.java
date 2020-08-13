@@ -39,8 +39,6 @@ public class CloudServer {
     }
 
     public void init() {
-//        Command.IN_RECEIVE_FILE.addCommandResultListener(this::refreshClients);
-//        Command.IN_CREATE_FOLDER.addCommandResultListener(this::refreshClients);
         try {
             FolderWatcherService.getInstance()
                     .addFolder(FileInfoCollector.MAIN_FOLDER)
@@ -51,7 +49,6 @@ public class CloudServer {
     }
 
     private void refreshClientsFileList(Object... objects) {
-        logger.trace("аргументы обновления клиентов {}", objects);
         for (ClientHandler clientHandler : clientList) {
             Path currentFolder = clientHandler.getSelectedFolder();
             if (((Path) objects[0]).equals(currentFolder)) {
@@ -91,7 +88,6 @@ public class CloudServer {
 
     private void initClientHandler(ClientHandler clientHandler) throws Exception {
         clientList.add(clientHandler);
-//        Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, FileInfoCollector.UP_LEVEL));
         clientHandler.setMessageListener(message -> {
             try {
                 Command.valueOf(message).execute(CmdParams.parse(clientHandler));
@@ -120,7 +116,6 @@ public class CloudServer {
         }
         try {
             serverSocket.close();
-
         } catch (Exception e) {
         }
         try {

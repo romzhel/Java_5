@@ -95,19 +95,7 @@ public class ClientMainWindowController implements Initializable {
 
         lvFiles.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
-                FileInfo selectedFileInfo = lvFiles.getSelectionModel().getSelectedItem();
-                Path selectedPathForRequest = clientHandler.getSelectedFolder().resolve(selectedFileInfo.getPath());
-                logger.trace("выбран элемент {}, папка = {}", selectedFileInfo, selectedFileInfo.isFolder());
-                if (selectedFileInfo.isFolder()) {
-                    try {
-                        Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(
-                                clientHandler, selectedFileInfo.getPath()));
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    downloadFile();
-                }
+                fileFolderRequest();
             }
         });
 
@@ -131,11 +119,7 @@ public class ClientMainWindowController implements Initializable {
         }));
 
         btnDownload.setOnAction(event -> {
-            if (lvFiles.getSelectionModel().getSelectedItem() != null) {
-                downloadFile();
-            } else {
-                Dialogs.showMessage("Загрузка файла на сервер", "Выберите файл в списке");
-            }
+            fileFolderRequest();
         });
 
         btnUpload.setOnAction(event -> {
@@ -174,17 +158,22 @@ public class ClientMainWindowController implements Initializable {
         });
     }
 
-    private void downloadFile() {
+    private void fileFolderRequest() {
         FileInfo selectedFileInfo = lvFiles.getSelectionModel().getSelectedItem();
+        if (selectedFileInfo == null) {
+            throw new RuntimeException("Не выбран файл/папка");
+        }
+
         try {
             if (selectedFileInfo.isFolder()) {
-                logger.trace("выбран элемент {}, папка = {}", selectedFileInfo, selectedFileInfo.isFolder());
+                logger.trace("выбрана для навигации папка {}", selectedFileInfo);
                 Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
             } else {
                 logger.trace("выбран для загрузки файл {}", selectedFileInfo);
+                Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
             }
-            Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
         } catch (Exception e) {
+            logger.error("Ошибка скачивания файла/навигации {}", e.getMessage());
             Dialogs.showMessageTS("Скачивание файла/навигация", "Ошибка:\n\n" + e.getMessage());
         }
     }
