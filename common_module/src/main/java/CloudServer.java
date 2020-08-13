@@ -64,14 +64,14 @@ public class CloudServer {
 
     public void start() {
         logger.trace("запуск сервера");
-        executorService.submit(() -> {
+        Thread clientHandlersThread = new Thread(() -> {
             try {
                 fileInfoCollector.start();
 //                folderWatcherService.start();
                 authService.start();
                 serverSocket = new ServerSocket(8189);
                 logger.trace("сервер запущен, ожидание подключения клиентов");
-                while (true) {
+                while (!serverSocket.isClosed()) {
                     Socket socket = serverSocket.accept();
                     ClientHandler clientHandler = new ClientHandler(this, socket);
                     initClientHandler(clientHandler);
@@ -79,11 +79,13 @@ public class CloudServer {
                 }
             } catch (Exception e) {
                 Dialogs.showMessageTS("Ошибка инициализации сервера", e.getMessage() + "\n\n" + e.toString());
-                e.printStackTrace();
                 stop();
                 Platform.exit();
             }
         });
+        clientHandlersThread.setName("clientHandlersThread");
+        clientHandlersThread.setDaemon(true);
+        clientHandlersThread.start();
     }
 
     private void initClientHandler(ClientHandler clientHandler) throws Exception {

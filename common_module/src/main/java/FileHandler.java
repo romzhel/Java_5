@@ -2,8 +2,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public class FileHandler {
     private static final Logger logger = LogManager.getLogger(FileHandler.class);
@@ -42,7 +42,7 @@ public class FileHandler {
         String fileName = dis.readUTF();
         logger.trace("file name received from client {}", fileName);
         long fileLength = dis.readLong();
-        logger.trace("будет принят файл {} [{}]", pathToSave.resolve(fileName), FileInfoCollector.formatSize(fileLength));
+//        logger.trace("будет принят файл {} [{}]", pathToSave.resolve(fileName), FileInfoCollector.formatSize(fileLength));
 
         File fileToSave = pathToSave != null ? FileInfoCollector.MAIN_FOLDER.resolve(pathToSave).resolve(fileName).toFile() :
                 Dialogs.selectAnyFileTS(null, "Выбор места сохранения", fileName);
@@ -73,18 +73,26 @@ public class FileHandler {
             throw e;
         }
 
-        return pathToSave.resolve(fileName);
+        return clientHandler.getSelectedFolder().resolve(fileName);
     }
 
     public Path createFolder(ClientHandler clientHandler) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
-        Path folderPath = Paths.get(clientHandler.getUser().getNick()).resolve(dis.readUTF());
+        Path folderPath = clientHandler.getSelectedFolder().resolve(dis.readUTF());
         Path fullFolderPath = FileInfoCollector.MAIN_FOLDER.resolve(folderPath);
         if (fullFolderPath.toFile().exists()) {
             throw new RuntimeException("Такая папка уже существует");
         }
 
-        fullFolderPath.toFile().mkdir();
+        Files.createDirectory(fullFolderPath);
         return folderPath;
+    }
+
+    public Path deleteItem(ClientHandler clientHandler) throws Exception {
+        DataInputStream dis = clientHandler.getDataInputStream();
+        Path fullItemPath = FileInfoCollector.MAIN_FOLDER.resolve(dis.readUTF());
+        Files.deleteIfExists(fullItemPath);
+
+        return fullItemPath;
     }
 }

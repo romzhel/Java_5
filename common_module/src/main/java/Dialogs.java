@@ -79,9 +79,9 @@ public class Dialogs {
         if (!Thread.currentThread().getName().equals("JavaFX Application Thread")) {
             CountDownLatch inputWaiting = new CountDownLatch(1);
 
-            logger.trace("dialog");
 
             Platform.runLater(() -> {
+                logger.trace("dialog opening in FX thread");
                 showMessage(title, message, size);
                 inputWaiting.countDown();
             });

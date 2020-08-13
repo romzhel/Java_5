@@ -33,18 +33,19 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() throws RuntimeException {
         try {
-            while (true) {
+            while (!socket.isClosed()) {
                 if (dataInputStream.available() > 0 && messageListener != null) {
                     messageListener.send(dataInputStream.readUTF());
                 }
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            logger.fatal("closing Client Handler dur error {} {}", this, e.getMessage(), e);
             close();
         }
     }
 
     public void close() {
+        logger.trace("closing ClientHandler {}", this);
         Closeable[] closeable = new Closeable[]{dataInputStream, dataOutputStream, socket};
         for (Closeable instance : closeable) {
             try {

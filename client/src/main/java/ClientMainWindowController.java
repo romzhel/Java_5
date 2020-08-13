@@ -54,7 +54,7 @@ public class ClientMainWindowController implements Initializable {
                 try {
                     Command.valueOf(message).execute(CmdParams.parse(clientHandler));
                 } catch (Exception e) {
-
+                    logger.error("command executing error {}", e.getMessage(), e);
                 }
             });
             executorService.submit(clientHandler);
@@ -118,10 +118,6 @@ public class ClientMainWindowController implements Initializable {
             navigationPane.setAddress(userPath.relativize(filesInfo.getFolder()));
         }));
 
-        btnDownload.setOnAction(event -> {
-            fileFolderRequest();
-        });
-
         btnUpload.setOnAction(event -> {
             File uploadedFile = Dialogs.selectAnyFileTS(null, "Выбор файла для загрузки на сервер", null);
             if (uploadedFile == null || !uploadedFile.exists()) {
@@ -158,6 +154,7 @@ public class ClientMainWindowController implements Initializable {
         });
     }
 
+    @FXML
     private void fileFolderRequest() {
         FileInfo selectedFileInfo = lvFiles.getSelectionModel().getSelectedItem();
         if (selectedFileInfo == null) {
@@ -175,6 +172,20 @@ public class ClientMainWindowController implements Initializable {
         } catch (Exception e) {
             logger.error("Ошибка скачивания файла/навигации {}", e.getMessage());
             Dialogs.showMessageTS("Скачивание файла/навигация", "Ошибка:\n\n" + e.getMessage());
+        }
+    }
+
+    public void delete() {
+        FileInfo selectedFileInfo = lvFiles.getSelectionModel().getSelectedItem();
+        if (selectedFileInfo == null) {
+            throw new RuntimeException("Не выбран файл/папка");
+        }
+
+        logger.trace("выбран элемент для удаления {}", selectedFileInfo);
+        try {
+            Command.OUT_DELETE_ITEM.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

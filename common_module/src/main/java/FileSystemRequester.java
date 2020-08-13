@@ -17,7 +17,6 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
     }
 
     public static FilesInfo getDetailedPathInfo(Path fullPath) {
-        System.out.println("fullPath = " + fullPath);
         try {
             return FilesInfo.create()
                     .setFolder(FileInfoCollector.MAIN_FOLDER.relativize(fullPath))

@@ -7,8 +7,8 @@
       <ListView fx:id="lvFiles" layoutX="23.0" layoutY="22.0" prefHeight="280.0" prefWidth="434.0"
                 AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="156.0"
                 AnchorPane.topAnchor="70.0"/>
-      <Button fx:id="btnDownload" layoutX="453.0" layoutY="155.0" mnemonicParsing="false" prefHeight="25.0"
-              prefWidth="129.0" text="Скачать с сервера"/>
+      <Button fx:id="btnDownload" layoutX="453.0" layoutY="155.0" mnemonicParsing="false" onAction="#fileFolderRequest"
+              prefHeight="25.0" prefWidth="129.0" text="Скачать с сервера"/>
       <Button fx:id="btnUpload" layoutX="453.0" layoutY="188.0" mnemonicParsing="false" prefHeight="25.0"
               prefWidth="129.0" text="Загрузить на сервер"/>
       <Button fx:id="btnClose" layoutX="461.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0"
@@ -24,5 +24,7 @@
       <Button fx:id="btnCreateFolder" layoutX="453.0" layoutY="229.0" mnemonicParsing="false" prefHeight="25.0"
               prefWidth="129.0" text="Создать папку"/>
       <FlowPane fx:id="fpNavigationPane" layoutX="11.0" layoutY="37.0" prefHeight="25.0" prefWidth="571.0"/>
+      <Button fx:id="btnDelete" layoutX="453.0" layoutY="263.0" mnemonicParsing="false" onAction="#delete"
+              prefHeight="25.0" prefWidth="129.0" text="Удалить"/>
    </children>
 </AnchorPane>

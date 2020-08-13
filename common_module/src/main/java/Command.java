@@ -201,9 +201,28 @@ public enum Command {
             FileInfoCollector fileInfoCollector = cmdParams.getFileInfoCollector();
             if (fileInfoCollector != null) {
                 Path folderPath = new FileHandler().createFolder(cmdParams.getClientHandler());
-                fileInfoCollector.addNewFile(folderPath, cmdParams.getClientHandler());
                 LogManager.getLogger(IN_CREATE_FOLDER.name()).trace("папка {} добавлена", folderPath);
                 commandResultListeners.forEach(action -> action.send(folderPath));
+            }
+        }
+    },
+    OUT_DELETE_ITEM {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_DELETE_ITEM.name()).trace(cmdParams);
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(IN_DELETE_ITEM.name());
+            dos.writeUTF(cmdParams.getStringParams().get(0));
+            dos.flush();
+        }
+    },
+    IN_DELETE_ITEM {
+        void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(IN_DELETE_ITEM.name()).trace(cmdParams);
+            FileInfoCollector fileInfoCollector = cmdParams.getFileInfoCollector();
+            if (fileInfoCollector != null) {
+                Path itemPath = new FileHandler().deleteItem(cmdParams.getClientHandler());
+                LogManager.getLogger(IN_DELETE_ITEM.name()).trace("элемент' {} удален", itemPath);
+                commandResultListeners.forEach(action -> action.send(itemPath));
             }
         }
     };
