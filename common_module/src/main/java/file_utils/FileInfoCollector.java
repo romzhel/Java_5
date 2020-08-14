@@ -48,25 +48,7 @@ public class FileInfoCollector {
         }
     }
 
-    public FolderInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки
+    public FolderInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {
         return FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
-        /*return file_utils.FilesInfo.create()
-                .setFolder(folder)
-                .setFileList(fileDb.getFiles(clientHandler.getUser(), folder)
-                        .stream()
-                        .map(path -> MAIN_FOLDER.resolve(path).toFile())
-                        .filter(file -> {
-//                            logger.trace("file {}, exists {}", file, file.exists());
-//                            logger.trace("file parent {}, selected folder {}", file.toPath().getParent(), MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()));
-                            return file.exists() *//*&& file.toPath().getParent().equals(MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()))*//*;
-                        })
-                        .map(file -> file_utils.FileInfo.create(file.toPath().subpath(MAIN_FOLDER.getNameCount(), file.toPath().getNameCount()),
-                                file.length(), file.isDirectory()))
-                        .collect(Collectors.toList()));*/
-    }
-
-    public void addNewFile(Path path, ClientHandler clientHandler) throws Exception {
-//        logger.trace("добавление файла {}", path);
-//        fileDb.saveNewFile(path.toString(), clientHandler.getUser().getId());
     }
 }

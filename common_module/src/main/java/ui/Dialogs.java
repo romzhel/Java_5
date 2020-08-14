@@ -1,13 +1,12 @@
 package ui;
 
 import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-import javafx.stage.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.TextInputDialog;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -81,7 +80,6 @@ public class Dialogs {
         if (!Thread.currentThread().getName().equals("JavaFX Application Thread")) {
             CountDownLatch inputWaiting = new CountDownLatch(1);
 
-
             Platform.runLater(() -> {
                 logger.trace("dialog opening in FX thread");
                 showMessage(title, message, size);
@@ -95,115 +93,6 @@ public class Dialogs {
         } else {
             showMessage(title, message, size);
         }
-    }
-
-    public static String[] getLoginData() throws Exception {
-        VBox root = new VBox();
-        root.setPadding(new Insets(25));
-        root.setSpacing(10);
-
-        TextField tfLogin = new TextField();
-        tfLogin.setPromptText("Введите логин");
-        PasswordField tfPassword = new PasswordField();
-        tfPassword.setPromptText("Введите пароль");
-
-        HBox buttonsArea = new HBox();
-        buttonsArea.setSpacing(26);
-        buttonsArea.setAlignment(Pos.CENTER);
-        Button btnOk = new Button("OK");
-        btnOk.setPrefWidth(75);
-        Button btnCancel = new Button("Отмена");
-        btnCancel.setPrefWidth(75);
-        buttonsArea.getChildren().addAll(btnOk, btnCancel);
-
-        Stage stage = new Stage();
-        Scene scene = new Scene(root, 280, 150);
-        stage.setScene(scene);
-        stage.setTitle("Авторизация");
-        stage.initStyle(StageStyle.UTILITY);
-        stage.initModality(Modality.APPLICATION_MODAL);
-        root.getChildren().addAll(tfLogin, tfPassword, buttonsArea);
-        btnCancel.requestFocus();
-
-        final boolean[] isCancelled = {false};
-
-        stage.setOnCloseRequest(event -> {
-            event.consume();
-            isCancelled[0] = true;
-            stage.close();
-        });
-
-        tfPassword.setOnAction(event -> loginDialogCheckData(tfLogin, tfPassword, stage));
-        btnOk.setOnAction(event -> loginDialogCheckData(tfLogin, tfPassword, stage));
-
-        btnCancel.setOnAction(event -> {
-            isCancelled[0] = true;
-            stage.close();
-        });
-        stage.showAndWait();
-
-        if (isCancelled[0]) {
-            throw new RuntimeException("Отмена операции");
-        }
-
-        return new String[]{tfLogin.getText(), tfPassword.getText()};
-    }
-
-    private static void loginDialogCheckData(TextField tfLogin, TextField tfPassword, Stage stage) {
-        boolean hasInputError = false;
-        if (tfLogin.getText().length() < 3) {
-            showMessageTS("Ошибка ввода", "Логин должен быть не менее 3 символов");
-            hasInputError = true;
-        } else if (tfPassword.getText().isEmpty()) {
-            showMessageTS("Ошибка ввода", "Пароль не может быть пустым");
-            hasInputError = true;
-        }
-        if (!hasInputError) {
-            stage.close();
-        }
-    }
-
-    public static String[] getRegistrationData() throws Exception {
-        VBox root = new VBox();
-        root.setPadding(new Insets(25));
-        root.setSpacing(10);
-
-        TextField tfName = new TextField();
-        tfName.setPromptText("Введите имя");
-        TextField tfLogin = new TextField();
-        tfLogin.setPromptText("Введите логин");
-        PasswordField tfPassword = new PasswordField();
-        tfPassword.setPromptText("Введите пароль");
-        PasswordField tfPasswordConfirmation = new PasswordField();
-        tfPasswordConfirmation.setPromptText("Введите пароль");
-
-        HBox buttonsArea = new HBox();
-        buttonsArea.setSpacing(26);
-        buttonsArea.setAlignment(Pos.CENTER);
-        Button btnOk = new Button("OK");
-        btnOk.setPrefWidth(75);
-        Button btnCancel = new Button("Отмена");
-        btnCancel.setPrefWidth(75);
-        buttonsArea.getChildren().addAll(btnOk, btnCancel);
-
-        Stage stage = new Stage();
-        Scene scene = new Scene(root, 280, 150);
-        stage.setScene(scene);
-        stage.setTitle("Авторизация");
-        stage.initStyle(StageStyle.UTILITY);
-        stage.initModality(Modality.APPLICATION_MODAL);
-        root.getChildren().addAll(tfName, tfLogin, tfPassword, tfPasswordConfirmation, buttonsArea);
-        btnCancel.requestFocus();
-        stage.showAndWait();
-
-        if (tfName.getText().length() < 3) {
-            throw new RuntimeException("Имя должно быть не менее 3 символов");
-        }
-        if (!tfPassword.getText().matches(tfPasswordConfirmation.getText())) {
-            throw new RuntimeException("Пароли не совпадают");
-        }
-
-        return new String[]{tfLogin.getText(), tfPassword.getText()};
     }
 
     public static String TextInputDialog(String title, String comment) {
