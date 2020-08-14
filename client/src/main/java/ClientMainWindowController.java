@@ -15,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
@@ -41,6 +42,7 @@ public class ClientMainWindowController implements Initializable {
     private ExecutorService executorService;
     private Socket socket;
     private NavigationPane clientNavigationPane;
+    private ListView<FileInfo> focusedFileList;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -138,13 +140,23 @@ public class ClientMainWindowController implements Initializable {
         });
 
         btnCreateFolder.setOnAction(event -> {
-            String folderName = Dialogs.TextInputDialog("Добавление папки", "Введите название папки", "");
-            if (!folderName.isEmpty()) {
-                try {
-                    Command.OUT_CREATE_FOLDER.execute(CmdParams.parse(clientHandler, folderName));
-                } catch (Exception e) {
-                    e.printStackTrace();
+            if (focusedFileList != null) {
+                String folderName = Dialogs.TextInputDialog("Добавление папки", "Введите название папки", "");
+                if (!folderName.isEmpty()) {
+                    try {
+                        if (focusedFileList == lvServerFiles) {
+                            Command.OUT_CREATE_FOLDER.execute(CmdParams.parse(clientHandler, folderName));
+                        } else if (focusedFileList == lvClientFiles) {
+                            Files.createDirectory(FileInfoCollector.CLIENT_FOLDER
+                                    .resolve(clientNavigationPane.getAddress())
+                                    .resolve(folderName));
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
+            } else {
+                Dialogs.showMessageTS("Создание папки", "Не был выбран ни один из списков, в котором нужно создать папку");
             }
         });
 
@@ -163,12 +175,12 @@ public class ClientMainWindowController implements Initializable {
         btnCopyToClient.setOnAction(event -> {
             FileInfo fileInfo = lvServerFiles.getSelectionModel().getSelectedItem();
             if (fileInfo != null && !fileInfo.isFolder()) {
-                logger.trace("копирование '{}' с сервера на клиент", fileInfo.getPath());
+                Path copyToPath = FileInfoCollector.CLIENT_FOLDER
+                        .resolve(clientNavigationPane.getAddress())
+                        .resolve(fileInfo.getPath().getFileName());
+                logger.trace("копирование '{}' с сервера на клиент '{}'", fileInfo.getPath(), copyToPath);
                 try {
-                    Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, fileInfo.getPath(),
-                            FileInfoCollector.CLIENT_FOLDER
-                                    .resolve(clientNavigationPane.getAddress()
-                                            .resolve(fileInfo.getPath()).getFileName())));
+                    Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, fileInfo.getPath(), copyToPath));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -188,6 +200,17 @@ public class ClientMainWindowController implements Initializable {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+        });
+
+        lvClientFiles.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                focusedFileList = lvClientFiles;
+            }
+        });
+        lvServerFiles.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) {
+                focusedFileList = lvServerFiles;
             }
         });
     }
@@ -216,14 +239,23 @@ public class ClientMainWindowController implements Initializable {
     }
 
     public void delete() {
-        FileInfo selectedFileInfo = lvServerFiles.getSelectionModel().getSelectedItem();
+        FileInfo selectedFileInfo = focusedFileList.getSelectionModel().getSelectedItem();
         if (selectedFileInfo == null) {
             throw new RuntimeException("Не выбран файл/папка");
         }
 
         logger.trace("выбран элемент для удаления {}", selectedFileInfo);
+
         try {
-            Command.OUT_DELETE_ITEM.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
+            if (focusedFileList == lvServerFiles) {
+                Command.OUT_DELETE_ITEM.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
+            } else if (focusedFileList == lvClientFiles) {
+                Files.deleteIfExists(FileInfoCollector.CLIENT_FOLDER
+                        .resolve(clientNavigationPane.getAddress())
+                        .resolve(selectedFileInfo.getPath().getFileName()));
+            } else {
+                Dialogs.showMessageTS("Удаление элемента", "Не выбран элемент для удаления");
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -283,10 +315,12 @@ public class ClientMainWindowController implements Initializable {
                 }
 
                 setVisible(true, btnCopyToServer, btnCopyToClient);
+                btnBrowseClient.setText("<<< Обзор клиента");
             } else {
                 stage.setWidth(605);
 
                 setVisible(false, btnCopyToServer, btnCopyToClient);
+                btnBrowseClient.setText("Обзор клиента >>>");
             }
         } catch (Exception e) {
             e.printStackTrace();
