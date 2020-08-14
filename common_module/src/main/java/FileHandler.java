@@ -54,7 +54,7 @@ public class FileHandler {
             fileSaveLocationPath = FileInfoCollector.MAIN_FOLDER.resolve(fileSaveLocationPath);
         }
 
-//        logger.trace("receiving file to '{}' ...", fileSaveLocationPath);
+        logger.trace("receiving file to '{}' ...", fileSaveLocationPath);
         if (Files.notExists(fileSaveLocationPath)) {
             Files.createFile(fileSaveLocationPath);
         }

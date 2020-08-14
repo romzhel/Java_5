@@ -2,6 +2,7 @@ import auth_service.User;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -30,7 +31,10 @@ public class ClientMainWindowController implements Initializable {
     public Button btnLogin;
     public Button btnRegistration;
     public Button btnCreateFolder;
+    public Button btnDelete;
     public Button btnBrowseClient;
+    public Button btnCopyToServer;
+    public Button btnCopyToClient;
     public FlowPane fpServerNavigationPane;
     public FlowPane fpClientNavigationPane;
     private ClientHandler clientHandler;
@@ -78,6 +82,10 @@ public class ClientMainWindowController implements Initializable {
                 btnRegistration.setVisible(false);
             });
             navigationPane.setRelativePath(Paths.get(user.getNick()));
+            btnBrowseClient.setVisible(true);
+
+            setVisible(false, btnLogin, btnRegistration);
+            setDisable(false, btnBrowseClient, btnDownload, btnUpload, btnCreateFolder, btnDelete);
         });
 
         Callback<ListView<FileInfo>, ListCell<FileInfo>> listViewListCellCallback = new Callback<ListView<FileInfo>, ListCell<FileInfo>>() {
@@ -151,6 +159,37 @@ public class ClientMainWindowController implements Initializable {
         btnClose.setOnAction(event -> {
             close();
         });
+
+        btnCopyToClient.setOnAction(event -> {
+            FileInfo fileInfo = lvServerFiles.getSelectionModel().getSelectedItem();
+            if (fileInfo != null && !fileInfo.isFolder()) {
+                logger.trace("копирование '{}' с сервера на клиент", fileInfo.getPath());
+                try {
+                    Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, fileInfo.getPath(),
+                            FileInfoCollector.CLIENT_FOLDER
+                                    .resolve(clientNavigationPane.getAddress()
+                                            .resolve(fileInfo.getPath()).getFileName())));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        btnCopyToServer.setOnAction(event -> {
+            FileInfo fileInfo = lvClientFiles.getSelectionModel().getSelectedItem();
+            if (fileInfo != null && !fileInfo.isFolder()) {
+                logger.trace("копирование '{}' с клиента на сервер", fileInfo.getPath());
+
+                try {
+                    Command.OUT_SEND_FILE.execute(CmdParams.parse(clientHandler,
+                            FileInfoCollector.CLIENT_FOLDER
+                                    .resolve(clientNavigationPane.getAddress())
+                                    .resolve(fileInfo.getPath().getFileName())));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @FXML
@@ -166,7 +205,9 @@ public class ClientMainWindowController implements Initializable {
                 Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
             } else {
                 logger.trace("выбран для загрузки файл {}", selectedFileInfo);
-                Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
+                String fileSaveLocation = Dialogs.selectAnyFileTS(null, "Выбор места сохранения",
+                        selectedFileInfo.getPath().getFileName().toString()).getPath();
+                Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath(), fileSaveLocation));
             }
         } catch (Exception e) {
             logger.error("Ошибка скачивания файла/навигации {}", e.getMessage());
@@ -240,13 +281,27 @@ public class ClientMainWindowController implements Initializable {
                             })
                     );
                 }
+
+                setVisible(true, btnCopyToServer, btnCopyToClient);
             } else {
                 stage.setWidth(605);
 
-
+                setVisible(false, btnCopyToServer, btnCopyToClient);
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private void setVisible(boolean visible, Node... nodes) {
+        for (Node node : nodes) {
+            node.setVisible(visible);
+        }
+    }
+
+    private void setDisable(boolean visible, Node... nodes) {
+        for (Node node : nodes) {
+            node.setDisable(visible);
         }
     }
 

@@ -5,11 +5,16 @@
 <AnchorPane prefHeight="400.0" prefWidth="1034.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="ClientMainWindowController">
    <children>
+      <Button fx:id="btnCopyToServer" layoutX="453.0" layoutY="104.0" mnemonicParsing="false" prefHeight="25.0"
+              prefWidth="129.0" text="&lt;&lt;&lt;&lt;&lt;" visible="false"/>
+      <Button fx:id="btnCopyToClient" layoutX="453.0" layoutY="70.0" mnemonicParsing="false" prefHeight="25.0"
+              prefWidth="129.0" text="&gt;&gt;&gt;&gt;&gt;" visible="false"/>
       <ListView fx:id="lvServerFiles" layoutX="23.0" layoutY="22.0" prefHeight="280.0" prefWidth="434.0"
                 AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="70.0"/>
-      <Button fx:id="btnDownload" layoutX="453.0" layoutY="155.0" mnemonicParsing="false" onAction="#fileFolderRequest"
-              prefHeight="25.0" prefWidth="129.0" text="Скачать с сервера" AnchorPane.leftAnchor="453.0"/>
-      <Button fx:id="btnUpload" layoutX="453.0" layoutY="188.0" mnemonicParsing="false" prefHeight="25.0"
+      <Button fx:id="btnDownload" disable="true" layoutX="453.0" layoutY="155.0" mnemonicParsing="false"
+              onAction="#fileFolderRequest" prefHeight="25.0" prefWidth="129.0" text="Скачать с сервера"
+              AnchorPane.leftAnchor="453.0"/>
+      <Button fx:id="btnUpload" disable="true" layoutX="453.0" layoutY="188.0" mnemonicParsing="false" prefHeight="25.0"
               prefWidth="129.0" text="Загрузить на сервер"/>
       <Button fx:id="btnClose" layoutX="453.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0"
               prefWidth="129.0" text="Закрыть"/>
@@ -21,13 +26,13 @@
               prefWidth="129.0" text="Авторизация" AnchorPane.leftAnchor="453.0" AnchorPane.topAnchor="70.0"/>
       <Button fx:id="btnRegistration" disable="true" layoutX="453.0" layoutY="104.0" mnemonicParsing="false"
               prefHeight="25.0" prefWidth="129.0" text="Регистрация" AnchorPane.leftAnchor="453.0"/>
-      <Button fx:id="btnCreateFolder" layoutX="453.0" layoutY="229.0" mnemonicParsing="false" prefHeight="25.0"
-              prefWidth="129.0" text="Создать папку"/>
+      <Button fx:id="btnCreateFolder" disable="true" layoutX="453.0" layoutY="229.0" mnemonicParsing="false"
+              prefHeight="25.0" prefWidth="129.0" text="Создать папку"/>
       <FlowPane fx:id="fpServerNavigationPane" layoutX="11.0" layoutY="37.0" prefHeight="25.0" prefWidth="434.0"/>
-      <Button fx:id="btnDelete" layoutX="453.0" layoutY="263.0" mnemonicParsing="false" onAction="#delete"
-              prefHeight="25.0" prefWidth="129.0" text="Удалить"/>
+      <Button fx:id="btnDelete" disable="true" layoutX="453.0" layoutY="263.0" mnemonicParsing="false"
+              onAction="#delete" prefHeight="25.0" prefWidth="129.0" text="Удалить"/>
       <ListView fx:id="lvClientFiles" layoutX="590.0" layoutY="70.0" prefHeight="280.0" prefWidth="434.0"/>
-      <Button fx:id="btnBrowseClient" layoutX="453.0" layoutY="10.0" mnemonicParsing="false"
+      <Button fx:id="btnBrowseClient" disable="true" layoutX="453.0" layoutY="10.0" mnemonicParsing="false"
               onAction="#switchClientBrowserView" prefHeight="25.0" prefWidth="129.0" text="Обзор клиента &gt;&gt;&gt;"
               AnchorPane.leftAnchor="453.0" AnchorPane.topAnchor="10.0"/>
       <FlowPane fx:id="fpClientNavigationPane" layoutX="590.0" layoutY="37.0" prefHeight="25.0" prefWidth="434.0"/>

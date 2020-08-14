@@ -3,7 +3,6 @@ import org.apache.logging.log4j.LogManager;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -13,14 +12,14 @@ public enum Command {
 
     OUT_DOWNLOAD_REQUEST {
         void execute(CmdParams cmdParams) throws Exception {
-            if (cmdParams.getStringParams().size() != 1) {
+            LogManager.getLogger(OUT_DOWNLOAD_REQUEST.name()).trace(cmdParams);
+            if (cmdParams.getStringParams().size() < 2) {
                 throw new RuntimeException("Неверное количество параметров");
             }
             Path relativeFilePath = Paths.get(cmdParams.getStringParams().get(0));
-            File fileSaveLocation = Dialogs.selectAnyFileTS(null, "Выбор места сохранения",
-                    relativeFilePath.getFileName().toString());
+            Path fileSaveLocation = Paths.get(cmdParams.getStringParams().get(1));
 
-            if (fileSaveLocation == null) {
+            if (fileSaveLocation.toString().isEmpty()) {
                 LogManager.getLogger(OUT_DOWNLOAD_REQUEST.name()).trace("не выбран путь для сохранения, " +
                         "отмена запроса файла с сервера");
                 return;
@@ -31,7 +30,7 @@ public enum Command {
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_DOWNLOAD_REQUEST_AND_SEND_FILE.name());
             dos.writeUTF(relativeFilePath.toString());
-            dos.writeUTF(fileSaveLocation.getPath());
+            dos.writeUTF(fileSaveLocation.toString());
             dos.flush();
         }
     },
