@@ -25,8 +25,9 @@ public class NavigationPane {
     }
 
     public void setAddress(Path path) {
-        logger.trace("получен path = '{}'", path);
-        path = relativePath.relativize(path);
+        logger.trace("получен path = '{}', relative path = '{}'", path, relativePath);
+        address = path;
+        path = relativePath.getRoot() != null ? path : relativePath.relativize(path);
         logger.trace("обработанный c '{}' path = '{}'", relativePath, path);
         flowPane.getChildren().clear();
         path = rootPath.resolve(path);
@@ -40,14 +41,17 @@ public class NavigationPane {
             logger.trace("ссылка '{}' = '{}'", i, navPath);
             flowPane.getChildren().addAll(hyperlink, new Hyperlink("\\"));
             hyperlink.setOnAction(event -> {
+                Path navigatePath = relativePath.getRoot() != null ? (Path) hyperlink.getUserData() :
+                        relativePath.resolve((Path) hyperlink.getUserData());
+                address = navigatePath;
+                logger.debug("адрес = '{}'", address);
+
                 navigationListeners.forEach(action -> {
-                    Path navigatePath = relativePath.resolve((Path) hyperlink.getUserData());
                     action.navigate(navigatePath);
-                    address = navigatePath;
-                    logger.debug("адрес = '{}'", address);
                 });
             });
         }
+        logger.debug("адрес = '{}'", address);
     }
 
     public Path getAddress() {

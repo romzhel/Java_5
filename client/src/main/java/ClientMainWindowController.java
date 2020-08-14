@@ -197,18 +197,37 @@ public class ClientMainWindowController implements Initializable {
                 if (clientNavigationPane == null) {
                     Path defaultPath = FileInfoCollector.CLIENT_FOLDER;
                     clientNavigationPane = new NavigationPane(fpClientNavigationPane, Paths.get("..."), defaultPath);
-                    clientNavigationPane.setAddress(defaultPath);
+                    clientNavigationPane.setAddress(Paths.get(""));
 
                     lvClientFiles.getItems().clear();
                     lvClientFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(defaultPath, defaultPath).getFileList());
                     clientNavigationPane.addNavigationListener(path -> {
                         logger.trace("навигация по клиенту {}", path);
                         lvClientFiles.getItems().clear();
-                        lvClientFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(path, defaultPath).getFileList());
+                        FilesInfo filesInfo = FileSystemRequester.getDetailedPathInfo(path, defaultPath);
+                        logger.debug("получен список файлов {}", filesInfo);
+                        lvClientFiles.getItems().addAll(filesInfo.getFileList());
+                        clientNavigationPane.setAddress(filesInfo.getFolder());
+                    });
+
+                    lvClientFiles.setOnMouseClicked(event -> {
+                        if (event.getClickCount() == 2) {
+                            FileInfo fileInfo = lvClientFiles.getSelectionModel().getSelectedItem();
+                            logger.debug("навигация по списку файлов, переход на {}", fileInfo.getPath());
+                            if (fileInfo != null && fileInfo.isFolder()) {
+                                lvClientFiles.getItems().clear();
+                                FilesInfo filesInfo = FileSystemRequester.getDetailedPathInfo(fileInfo.getPath(), defaultPath);
+                                logger.debug("получен список файлов {}", filesInfo);
+                                lvClientFiles.getItems().addAll(filesInfo.getFileList());
+                                clientNavigationPane.setAddress(fileInfo.getPath());
+                            }
+
+                        }
                     });
 
                     FolderWatcherService.getInstance().addChangeListener(FileSystemChangeListener.create()
                             .setMonitoredFolderPath(defaultPath)
+                            .setRelativesPath(defaultPath)
                             .setChangeListener(changedFolder -> {
                                 logger.debug("изменения в папке '{}', текущая папка '{}'", changedFolder, clientNavigationPane.getAddress());
                                 if (clientNavigationPane.getAddress().equals(changedFolder)) {
@@ -219,7 +238,6 @@ public class ClientMainWindowController implements Initializable {
                                     });
                                 }
                             })
-                            .setRelativesPath(defaultPath)
                     );
                 }
             } else {

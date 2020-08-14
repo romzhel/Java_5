@@ -20,8 +20,9 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
     public static FilesInfo getDetailedPathInfo(Path fullPath, Path relativePath) {
         logger.debug("запрошен состав папки '{}' с относительным путём '{}'", fullPath, relativePath);
         if (fullPath.getRoot() == null) {
-            fullPath = fullPath.resolve(relativePath);
+            fullPath = relativePath.resolve(fullPath);
         }
+        logger.debug("поиск файлов в '{}'", fullPath);
         try {
             Path finalFullPath = fullPath;
             return FilesInfo.create()
