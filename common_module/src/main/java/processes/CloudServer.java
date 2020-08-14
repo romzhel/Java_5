@@ -113,13 +113,16 @@ public class CloudServer {
             }
         });
         clientHandler.setCloseListener(() -> clientList.remove(clientHandler));
-        Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> {
-            try {
-                Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> sendFileList(clientHandler));
+        Command.IN_RECEIVE_REGISTRATION_DATA.addCommandResultListener(objects -> sendFileList(clientHandler));
+    }
+
+    private void sendFileList(ClientHandler clientHandler) {
+        try {
+            Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, clientHandler.getSelectedFolder()));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void stop() {

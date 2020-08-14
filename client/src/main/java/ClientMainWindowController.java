@@ -16,6 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import processes.ClientHandler;
 import ui.Dialogs;
+import ui.LoginRegistrationDialog;
 import ui.NavigationPane;
 
 import java.io.File;
@@ -147,7 +148,7 @@ public class ClientMainWindowController implements Initializable {
 
         btnCreateFolder.setOnAction(event -> {
             if (focusedFileList != null) {
-                String folderName = Dialogs.TextInputDialog("Добавление папки", "Введите название папки", "");
+                String folderName = Dialogs.TextInputDialog("Добавление папки", "Введите название папки");
                 if (!folderName.isEmpty()) {
                     try {
                         if (focusedFileList == lvServerFiles) {
@@ -168,9 +169,20 @@ public class ClientMainWindowController implements Initializable {
 
         btnLogin.setOnAction(event -> {
             try {
-                Command.OUT_SEND_LOGIN_DATA.execute(CmdParams.parse(clientHandler, Dialogs.getLoginData()));
+//                Command.OUT_SEND_LOGIN_DATA.execute(CmdParams.parse(clientHandler, Dialogs.getLoginData()));
+                Command.OUT_SEND_LOGIN_DATA.execute(CmdParams.parse(clientHandler, new LoginRegistrationDialog().getLoginData()));
             } catch (Exception e) {
-                System.out.println(e.getMessage());
+                logger.info("Ошибка авторизации {}", e.getMessage());
+            }
+        });
+
+        btnRegistration.setOnAction(event -> {
+            try {
+                Command.OUT_SEND_REGISTRATION_DATA.execute(CmdParams.parse(clientHandler,
+                        new LoginRegistrationDialog().getRegistrationData()));
+            } catch (Exception e) {
+                logger.error("Ошибка регистрации нового пользователя");
+                Dialogs.showMessageTS("Регистрация пользователя", e.getMessage());
             }
         });
 
@@ -234,12 +246,15 @@ public class ClientMainWindowController implements Initializable {
                 Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
             } else {
                 logger.trace("выбран для загрузки файл {}", selectedFileInfo);
-                String fileSaveLocation = Dialogs.selectAnyFileTS(null, "Выбор места сохранения",
-                        selectedFileInfo.getPath().getFileName().toString()).getPath();
-                Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath(), fileSaveLocation));
+                File fileSaveLocation = Dialogs.selectAnyFileTS(null, "Выбор места сохранения",
+                        selectedFileInfo.getPath().getFileName().toString());
+                if (fileSaveLocation != null) {
+                    Command.OUT_DOWNLOAD_REQUEST.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath(),
+                            fileSaveLocation.toPath()));
+                }
             }
         } catch (Exception e) {
-            logger.error("Ошибка скачивания файла/навигации {}", e.getMessage());
+            logger.error("Ошибка скачивания файла/навигации {}", e.getMessage(), e);
             Dialogs.showMessageTS("Скачивание файла/навигация", "Ошибка:\n\n" + e.getMessage());
         }
     }

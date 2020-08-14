@@ -34,6 +34,7 @@ public class ServerMainWindowController implements Initializable {
             lblStatus.setText("Ожидание подключения клиентов");
 
             Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> lvClients.refresh());
+            Command.IN_RECEIVE_REGISTRATION_DATA.addCommandResultListener(objects -> lvClients.refresh());
 
             CloudServer.getInstance().getClientList().addListener((ListChangeListener<ClientHandler>) c -> {
                 Platform.runLater(() -> {

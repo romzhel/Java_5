@@ -12,6 +12,7 @@ import java.io.DataOutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public enum Command {
@@ -235,6 +236,39 @@ public enum Command {
                 Path itemPath = new FileHandler().deleteItem(cmdParams.getClientHandler());
                 LogManager.getLogger(IN_DELETE_ITEM.name()).trace("элемент' {} удален", itemPath);
                 commandResultListeners.forEach(action -> action.send(itemPath));
+            }
+        }
+    },
+    OUT_SEND_REGISTRATION_DATA {
+        public void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_SEND_REGISTRATION_DATA.name()).trace(cmdParams);
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(IN_RECEIVE_REGISTRATION_DATA.name());
+            for (String s : cmdParams.getStringParams()) {
+                dos.writeUTF(s);
+            }
+        }
+    },
+    IN_RECEIVE_REGISTRATION_DATA {
+        public void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(IN_RECEIVE_REGISTRATION_DATA.name()).trace(cmdParams);
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
+            String[] data = new String[3];
+            for (int i = 0; i < 3; i++) {
+                data[i] = dis.readUTF();
+            }
+            LogManager.getLogger(IN_RECEIVE_REGISTRATION_DATA.name()).trace(Arrays.toString(data));
+
+            User user = cmdParams.getClientHandler().getServer().getAuthService().registerNick(data);
+            LogManager.getLogger(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name()).trace("user {}", user);
+            cmdParams.getClientHandler().setUser(user);
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(IN_USER_DATA.name());
+            dos.writeInt(user.getId());
+            dos.writeUTF(user.getNick());
+
+            for (ResultListener rs : commandResultListeners) {
+                rs.send(user);
             }
         }
     };

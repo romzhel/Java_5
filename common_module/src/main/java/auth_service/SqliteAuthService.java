@@ -6,13 +6,13 @@ import org.apache.logging.log4j.Logger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Arrays;
 
 public class SqliteAuthService implements AuthService {
-    private static final Logger LOGGER = LogManager.getLogger(SqliteAuthService.class);
+    private static final Logger logger = LogManager.getLogger(SqliteAuthService.class);
     private Connection connection;
     private PreparedStatement getNick;
-    private PreparedStatement checkNick;
-    private PreparedStatement changeNick;
+    private PreparedStatement registerNick;
 
     public SqliteAuthService(Connection connection) {
         this.connection = connection;
@@ -20,10 +20,10 @@ public class SqliteAuthService implements AuthService {
 
     @Override
     public void start() throws Exception {
-        getNick = connection.prepareStatement("SELECT id, nick FROM users WHERE login = ? AND password = ?");
-        checkNick = connection.prepareStatement("SELECT * FROM users WHERE nick = ?");
-        changeNick = connection.prepareStatement("UPDATE users SET nick = ? WHERE nick = ?");
-        LOGGER.info("Сервер авторизации запущен");
+        getNick = connection.prepareStatement("SELECT id, nick FROM users WHERE login = ? AND password = ?;");
+        registerNick = connection.prepareStatement("INSERT INTO users (nick, login, password) VALUES (?,?,?);",
+                PreparedStatement.RETURN_GENERATED_KEYS);
+        logger.info("Сервер авторизации запущен");
     }
 
     @Override
@@ -41,37 +41,30 @@ public class SqliteAuthService implements AuthService {
     }
 
     @Override
-    public void changeNick(String oldNick, String newNick) throws Exception {
-        checkNick.setString(1, newNick);
+    public User registerNick(String... params) throws Exception {
+        logger.info("регистрация {}", Arrays.toString(params));
+        registerNick.setString(1, params[0]);
+        registerNick.setString(2, params[1]);
+        registerNick.setString(3, params[2]);
+        registerNick.execute();
 
-        try (ResultSet rs = checkNick.executeQuery()) {
-            if (rs.next()) {
-                throw new RuntimeException("Ник " + newNick + " уже существует");
-            }
-        }
-
-        changeNick.setString(1, newNick);
-        changeNick.setString(2, oldNick);
-
-        if (changeNick.executeUpdate() < 1) {
-            throw new RuntimeException("Не удалось сменить ник " + oldNick + " на " + newNick);
+        ResultSet rs = registerNick.getGeneratedKeys();
+        if (rs.next()) {
+            return new User(rs.getInt(1), params[0]);
+        } else {
+            throw new RuntimeException("Не удалось добавить пользователя с ником '" + params[0] + "'");
         }
     }
 
     @Override
     public void stop() {
-        try {
-            changeNick.close();
-        } catch (Exception e) {
+        AutoCloseable[] objs = new AutoCloseable[]{getNick, registerNick, connection};
+        for (AutoCloseable obj : objs) {
+            try {
+                obj.close();
+            } catch (Exception e) {
+            }
         }
-        try {
-            getNick.close();
-        } catch (Exception e) {
-        }
-        try {
-            connection.close();
-        } catch (Exception e) {
-        }
-        LOGGER.trace("Сервиса авторизации остановлен");
+        logger.trace("Сервис авторизации остановлен");
     }
 }

@@ -5,7 +5,7 @@ public interface AuthService {
 
     User getNickByLoginPass(String login, String pass) throws Exception;
 
-    void changeNick(String oldNick, String newNick) throws Exception;
+    User registerNick(String... params) throws Exception;
 
     void stop();
 }

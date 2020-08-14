@@ -206,11 +206,11 @@ public class Dialogs {
         return new String[]{tfLogin.getText(), tfPassword.getText()};
     }
 
-    public static String TextInputDialog(String title, String comment, String label) {
+    public static String TextInputDialog(String title, String comment) {
         TextInputDialog tid = new TextInputDialog();
         tid.setTitle(title);
-        tid.setHeaderText(tid.getHeaderText());
-        tid.setContentText(label);
+        tid.setHeaderText(null);
+        tid.setContentText(comment);
 
         return tid.showAndWait().orElseGet(() -> "");
     }

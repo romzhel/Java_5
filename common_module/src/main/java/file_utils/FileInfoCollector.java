@@ -37,12 +37,15 @@ public class FileInfoCollector {
             MAIN_FOLDER.toFile().mkdir();
         }
 
-        Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> {
-            File userFolder = MAIN_FOLDER.resolve(((User) objects[0]).getNick()).toFile();
-            if (!userFolder.exists()) {
-                userFolder.mkdir();
-            }
-        });
+        Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(this::createFolder);
+        Command.IN_RECEIVE_REGISTRATION_DATA.addCommandResultListener(this::createFolder);
+    }
+
+    private void createFolder(Object... objects) {
+        File userFolder = MAIN_FOLDER.resolve(((User) objects[0]).getNick()).toFile();
+        if (!userFolder.exists()) {
+            userFolder.mkdir();
+        }
     }
 
     public FolderInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки

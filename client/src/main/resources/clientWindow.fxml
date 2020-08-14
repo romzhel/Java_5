@@ -24,8 +24,8 @@
       <Label layoutX="14.0" layoutY="14.0" text="Список файлов на сервере:" AnchorPane.topAnchor="14.0"/>
       <Button fx:id="btnLogin" layoutX="453.0" layoutY="70.0" mnemonicParsing="false" prefHeight="25.0"
               prefWidth="129.0" text="Авторизация" AnchorPane.leftAnchor="453.0" AnchorPane.topAnchor="70.0"/>
-      <Button fx:id="btnRegistration" disable="true" layoutX="453.0" layoutY="104.0" mnemonicParsing="false"
-              prefHeight="25.0" prefWidth="129.0" text="Регистрация" AnchorPane.leftAnchor="453.0"/>
+      <Button fx:id="btnRegistration" layoutX="453.0" layoutY="104.0" mnemonicParsing="false" prefHeight="25.0"
+              prefWidth="129.0" text="Регистрация" AnchorPane.leftAnchor="453.0"/>
       <Button fx:id="btnCreateFolder" disable="true" layoutX="453.0" layoutY="229.0" mnemonicParsing="false"
               prefHeight="25.0" prefWidth="129.0" text="Создать папку"/>
       <FlowPane fx:id="fpServerNavigationPane" layoutX="11.0" layoutY="37.0" prefHeight="25.0" prefWidth="434.0"/>
