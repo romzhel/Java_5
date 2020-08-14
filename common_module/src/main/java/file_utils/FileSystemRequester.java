@@ -1,3 +1,5 @@
+package file_utils;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,7 +19,7 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
     private FileSystemRequester() {
     }
 
-    public static FilesInfo getDetailedPathInfo(Path fullPath, Path relativePath) {
+    public static FolderInfo getDetailedPathInfo(Path fullPath, Path relativePath) {
         logger.debug("запрошен состав папки '{}' с относительным путём '{}'", fullPath, relativePath);
         if (fullPath.getRoot() == null) {
             fullPath = relativePath.resolve(fullPath);
@@ -25,7 +27,7 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
         logger.debug("поиск файлов в '{}'", fullPath);
         try {
             Path finalFullPath = fullPath;
-            return FilesInfo.create()
+            return FolderInfo.create()
                     .setFolder(relativePath.relativize(fullPath))
                     .setFileList(Files.walk(fullPath)
                             .filter(path1 -> path1.getParent().equals(finalFullPath))
@@ -34,7 +36,7 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
                             .collect(Collectors.toList()));
         } catch (IOException e) {
             e.printStackTrace();
-            return FilesInfo.create();
+            return FolderInfo.create();
         }
     }
 

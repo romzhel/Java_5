@@ -1,4 +1,7 @@
+package processes;
+
 import auth_service.User;
+import file_utils.FileInfoCollector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -45,7 +48,7 @@ public class ClientHandler implements Runnable {
     }
 
     public void close() {
-        logger.trace("closing ClientHandler {}", this);
+        logger.trace("closing processes.ClientHandler {}", this);
         Closeable[] closeable = new Closeable[]{dataInputStream, dataOutputStream, socket};
         for (Closeable instance : closeable) {
             try {
@@ -111,7 +114,7 @@ public class ClientHandler implements Runnable {
 
     @Override
     public String toString() {
-        return "ClientHandler{" +
+        return "processes.ClientHandler{" +
                 "user=" + user +
                 ", selectedFolder=" + selectedFolder +
                 '}';

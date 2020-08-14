@@ -1,4 +1,5 @@
 import auth_service.User;
+import commands.Command;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;

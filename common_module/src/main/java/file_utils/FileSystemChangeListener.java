@@ -1,3 +1,5 @@
+package file_utils;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -41,7 +43,7 @@ public class FileSystemChangeListener {
         return this;
     }
 
-    interface FileChangeListener {
+    public interface FileChangeListener {
         void onChanged(Path changedFolder);
     }
 }

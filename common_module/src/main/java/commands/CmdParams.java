@@ -1,3 +1,10 @@
+package commands;
+
+import file_utils.FileInfoCollector;
+import file_utils.FolderInfo;
+import processes.ClientHandler;
+import processes.CloudServer;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,7 +15,7 @@ public class CmdParams {
     private CloudServer cloudServer;
     private FileInfoCollector fileInfoCollector;
     private List<String> stringParams;
-    private FilesInfo filesInfo;
+    private FolderInfo filesInfo;
 
     private CmdParams() {
         stringParams = new ArrayList<>();
@@ -27,8 +34,8 @@ public class CmdParams {
                 result.stringParams.addAll((List<String>) object);
             } else if (object instanceof String[]) {
                 result.stringParams = Arrays.asList((String[]) object);
-            } else if (object instanceof FilesInfo) {
-                result.filesInfo = (FilesInfo) object;
+            } else if (object instanceof FolderInfo) {
+                result.filesInfo = (FolderInfo) object;
             } else if (object instanceof Path) {
                 result.stringParams.add(object.toString());
             } else {
@@ -55,13 +62,13 @@ public class CmdParams {
         return stringParams;
     }
 
-    public FilesInfo getFilesInfo() {
+    public FolderInfo getFilesInfo() {
         return filesInfo;
     }
 
     @Override
     public String toString() {
-        return "CmdParams{" +
+        return "commands.CmdParams{" +
                 "clientHandler=" + clientHandler +
                 ", stringParams=" + stringParams +
                 ", filesInfo=" + filesInfo +

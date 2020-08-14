@@ -1,3 +1,7 @@
+package file_utils;
+
+import processes.ClientHandler;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.nio.file.Path;
@@ -78,7 +82,7 @@ public class FileInfo {
 
     @Override
     public String toString() {
-        return "FileInfo{" +
+        return "file_utils.FileInfo{" +
                 "path=" + path +
                 ", length=" + length +
                 ", isFolder=" + isFolder +

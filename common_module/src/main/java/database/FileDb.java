@@ -1,4 +1,7 @@
+package database;
+
 import auth_service.User;
+import file_utils.FileInfoCollector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

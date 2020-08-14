@@ -1,3 +1,5 @@
+import commands.Command;
+import file_utils.*;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.fxml.Initializable;
@@ -8,6 +10,9 @@ import javafx.scene.control.ListView;
 import javafx.util.Callback;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import processes.ClientHandler;
+import processes.CloudServer;
+import ui.Dialogs;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -90,7 +95,7 @@ public class ServerMainWindowController implements Initializable {
             FolderWatcherService.getInstance().addChangeListener(FileSystemChangeListener.create()
                     .setChangeListener(changedFolder -> {
                         Platform.runLater(() -> {
-                            FilesInfo filesInfo = FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER,
+                            FolderInfo filesInfo = FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER,
                                     FileInfoCollector.MAIN_FOLDER);
                             lvServerFiles.getItems().clear();
                             lvServerFiles.getItems().addAll(filesInfo.getFileList());

@@ -1,5 +1,9 @@
+package file_utils;
+
+import commands.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import processes.ClientHandler;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

@@ -3,6 +3,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
+import processes.CloudServer;
 
 public class ServerMainWindow extends Application {
 
@@ -16,7 +17,7 @@ public class ServerMainWindow extends Application {
         AnchorPane root = fxmlLoader.load();
         Scene scene = new Scene(root);
         primaryStage.setScene(scene);
-        primaryStage.setTitle("Консоль состояния сервера файлообменника");
+        primaryStage.setTitle("Консоль сервера файлообменника");
         primaryStage.show();
 
         CloudServer.getInstance().start();

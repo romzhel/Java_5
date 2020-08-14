@@ -1,6 +1,12 @@
+package file_utils;
+
 import auth_service.User;
+import commands.Command;
+import database.DataBase;
+import database.FileDb;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import processes.ClientHandler;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -39,9 +45,9 @@ public class FileInfoCollector {
         });
     }
 
-    public FilesInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки
+    public FolderInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки
         return FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
-        /*return FilesInfo.create()
+        /*return file_utils.FilesInfo.create()
                 .setFolder(folder)
                 .setFileList(fileDb.getFiles(clientHandler.getUser(), folder)
                         .stream()
@@ -51,7 +57,7 @@ public class FileInfoCollector {
 //                            logger.trace("file parent {}, selected folder {}", file.toPath().getParent(), MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()));
                             return file.exists() *//*&& file.toPath().getParent().equals(MAIN_FOLDER.resolve(clientHandler.getSelectedFolder()))*//*;
                         })
-                        .map(file -> FileInfo.create(file.toPath().subpath(MAIN_FOLDER.getNameCount(), file.toPath().getNameCount()),
+                        .map(file -> file_utils.FileInfo.create(file.toPath().subpath(MAIN_FOLDER.getNameCount(), file.toPath().getNameCount()),
                                 file.length(), file.isDirectory()))
                         .collect(Collectors.toList()));*/
     }

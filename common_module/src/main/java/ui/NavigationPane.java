@@ -1,3 +1,5 @@
+package ui;
+
 import javafx.scene.control.Hyperlink;
 import javafx.scene.layout.FlowPane;
 import org.apache.logging.log4j.LogManager;
@@ -66,7 +68,7 @@ public class NavigationPane {
         navigationListeners.add(navigationListener);
     }
 
-    interface NavigationListener {
+    public interface NavigationListener {
         void navigate(Path path);
     }
 }

@@ -1,5 +1,8 @@
+package file_utils;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import processes.ClientHandler;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -9,31 +12,31 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class FilesInfo {
-    private static final Logger logger = LogManager.getLogger(FilesInfo.class);
+public class FolderInfo {
+    private static final Logger logger = LogManager.getLogger(FolderInfo.class);
     private Path folder;
     private List<FileInfo> fileList;
 
 
-    private FilesInfo() {
+    private FolderInfo() {
         this.fileList = new ArrayList<>();
     }
 
-    public static FilesInfo create() {
-        return new FilesInfo();
+    public static FolderInfo create() {
+        return new FolderInfo();
     }
 
-    public FilesInfo setFolder(Path folder) {
+    public FolderInfo setFolder(Path folder) {
         this.folder = folder;
         return this;
     }
 
-    public FilesInfo setFileList(FileInfo... fileList) {
+    public FolderInfo setFileList(FileInfo... fileList) {
         this.fileList.addAll(Arrays.asList(fileList));
         return this;
     }
 
-    public FilesInfo setFileList(List<FileInfo> fileList) {
+    public FolderInfo setFileList(List<FileInfo> fileList) {
         this.fileList.addAll(fileList);
         return this;
     }
@@ -47,7 +50,7 @@ public class FilesInfo {
         }
     }
 
-    public FilesInfo getFrom(ClientHandler clientHandler) throws Exception {
+    public FolderInfo getFrom(ClientHandler clientHandler) throws Exception {
         DataInputStream dis = clientHandler.getDataInputStream();
         Path folder = Paths.get(dis.readUTF());
 //        logger.trace("folder = {}", folder);
@@ -60,7 +63,7 @@ public class FilesInfo {
 //            logger.trace(fi);
         }
 
-        return FilesInfo.create().setFolder(folder).setFileList(list);
+        return FolderInfo.create().setFolder(folder).setFileList(list);
     }
 
     public Path getFolder() {
@@ -73,7 +76,7 @@ public class FilesInfo {
 
     @Override
     public String toString() {
-        return "FilesInfo {" +
+        return "file_utils.FilesInfo {" +
                 "folder=" + folder +
                 ", fileList=" + Arrays.toString(fileList.toArray()) +
                 '}';

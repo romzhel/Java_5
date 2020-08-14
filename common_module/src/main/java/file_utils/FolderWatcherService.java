@@ -1,3 +1,5 @@
+package file_utils;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -29,7 +31,7 @@ public class FolderWatcherService implements Runnable {
         return instance;
     }
 
-    /*public FolderWatcherService addFolder(Path monitoredRootFolder) throws IOException {
+    /*public file_utils.FolderWatcherService addFolder(Path monitoredRootFolder) throws IOException {
         if (!Files.exists(monitoredRootFolder) || Files.isRegularFile(monitoredRootFolder)) {
             throw new RuntimeException("Недопустимая папка " + monitoredRootFolder);
         }
@@ -55,7 +57,7 @@ public class FolderWatcherService implements Runnable {
 
     public void start() throws Exception {
         Thread thread = new Thread(this);
-        thread.setName("FolderWatcherService");
+        thread.setName("file_utils.FolderWatcherService");
         thread.setDaemon(true);
         thread.start();
     }

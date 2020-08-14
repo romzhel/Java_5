@@ -1,4 +1,7 @@
 import auth_service.User;
+import commands.CmdParams;
+import commands.Command;
+import file_utils.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -11,6 +14,9 @@ import javafx.stage.Stage;
 import javafx.util.Callback;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import processes.ClientHandler;
+import ui.Dialogs;
+import ui.NavigationPane;
 
 import java.io.File;
 import java.net.Socket;
@@ -121,7 +127,7 @@ public class ClientMainWindowController implements Initializable {
 
         Command.IN_FILES_LIST.addCommandResultListener(objects -> Platform.runLater(() -> {
             Path userPath = Paths.get(clientHandler.getUser().getNick());
-            FilesInfo filesInfo = (FilesInfo) objects[0];
+            FolderInfo filesInfo = (FolderInfo) objects[0];
             lvServerFiles.getItems().clear();
             lvServerFiles.getItems().addAll(filesInfo.getFileList());
             navigationPane.setAddress(filesInfo.getFolder());
@@ -277,7 +283,7 @@ public class ClientMainWindowController implements Initializable {
                     clientNavigationPane.addNavigationListener(path -> {
                         logger.trace("навигация по клиенту {}", path);
                         lvClientFiles.getItems().clear();
-                        FilesInfo filesInfo = FileSystemRequester.getDetailedPathInfo(path, defaultPath);
+                        FolderInfo filesInfo = FileSystemRequester.getDetailedPathInfo(path, defaultPath);
                         logger.debug("получен список файлов {}", filesInfo);
                         lvClientFiles.getItems().addAll(filesInfo.getFileList());
                         clientNavigationPane.setAddress(filesInfo.getFolder());
@@ -289,7 +295,7 @@ public class ClientMainWindowController implements Initializable {
                             logger.debug("навигация по списку файлов, переход на {}", fileInfo.getPath());
                             if (fileInfo != null && fileInfo.isFolder()) {
                                 lvClientFiles.getItems().clear();
-                                FilesInfo filesInfo = FileSystemRequester.getDetailedPathInfo(fileInfo.getPath(), defaultPath);
+                                FolderInfo filesInfo = FileSystemRequester.getDetailedPathInfo(fileInfo.getPath(), defaultPath);
                                 logger.debug("получен список файлов {}", filesInfo);
                                 lvClientFiles.getItems().addAll(filesInfo.getFileList());
                                 clientNavigationPane.setAddress(fileInfo.getPath());

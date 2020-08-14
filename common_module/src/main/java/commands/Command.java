@@ -1,5 +1,11 @@
+package commands;
+
 import auth_service.User;
+import file_utils.FileHandler;
+import file_utils.FileInfoCollector;
+import file_utils.FolderInfo;
 import org.apache.logging.log4j.LogManager;
+import ui.Dialogs;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -11,7 +17,7 @@ import java.util.List;
 public enum Command {
 
     OUT_DOWNLOAD_REQUEST {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(OUT_DOWNLOAD_REQUEST.name()).trace(cmdParams);
             if (cmdParams.getStringParams().size() < 2) {
                 throw new RuntimeException("Неверное количество параметров");
@@ -35,7 +41,7 @@ public enum Command {
         }
     },
     IN_DOWNLOAD_REQUEST_AND_SEND_FILE {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             Path filePath = Paths.get(dis.readUTF());
             Path fileSaveLocationPath = Paths.get(dis.readUTF());
@@ -45,7 +51,7 @@ public enum Command {
         }
     },
     IN_RECEIVE_FILE {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace(cmdParams);
             Path filePath = new FileHandler().receiveFile(cmdParams.getClientHandler());
             LogManager.getLogger(IN_RECEIVE_FILE.name()).trace("received file = {}", filePath);
@@ -53,7 +59,7 @@ public enum Command {
         }
     },
     OUT_SEND_FILE {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             if (cmdParams.getStringParams().size() != 1) {
                 throw new RuntimeException("Неверное количество параметров");
             }
@@ -65,7 +71,7 @@ public enum Command {
         }
     },
     OUT_SEND_FILE_LIST_REQUEST {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             if (cmdParams.getStringParams().size() != 1) {
                 throw new RuntimeException("Неверное количество параметров");
             }
@@ -78,7 +84,7 @@ public enum Command {
         }
     },
     IN_FILE_LIST_REQUEST {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             String requestedFolder = dis.readUTF();
             LogManager.getLogger(IN_FILE_LIST_REQUEST.name()).trace(requestedFolder);
@@ -87,11 +93,11 @@ public enum Command {
         }
     },
     OUT_SEND_FILE_LIST {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_FILES_LIST.name());
-            FilesInfo filesInfo = cmdParams.getFileInfoCollector().getFilesInfo(cmdParams.getClientHandler(),
+            FolderInfo filesInfo = cmdParams.getFileInfoCollector().getFilesInfo(cmdParams.getClientHandler(),
                     Paths.get(cmdParams.getStringParams().get(0)));
             LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace("отправка списка файлов клиенту {}", filesInfo);
             filesInfo.sendTo(cmdParams.getClientHandler());
@@ -101,8 +107,8 @@ public enum Command {
         }
     },
     IN_FILES_LIST {
-        void execute(CmdParams cmdParams) throws Exception {
-            FilesInfo filesInfo = FilesInfo.create().getFrom(cmdParams.getClientHandler());
+        public void execute(CmdParams cmdParams) throws Exception {
+            FolderInfo filesInfo = FolderInfo.create().getFrom(cmdParams.getClientHandler());
             cmdParams.getClientHandler().setSelectedFolder(filesInfo.getFolder());
             LogManager.getLogger(IN_FILES_LIST.name()).trace(filesInfo);
 
@@ -110,13 +116,13 @@ public enum Command {
         }
     },
     OK {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(OK.name()).trace(cmdParams);
             System.out.println("/ok");
         }
     },
     OUT_SEND_EXIT {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(OUT_SEND_EXIT.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_EXIT.name());
@@ -125,13 +131,13 @@ public enum Command {
         }
     },
     IN_EXIT {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_EXIT.name()).trace(cmdParams);
             cmdParams.getClientHandler().close();
         }
     },
     OUT_SEND_LOGIN_DATA {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(OUT_SEND_LOGIN_DATA.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.name());
@@ -140,7 +146,7 @@ public enum Command {
         }
     },
     IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             User user = null;
@@ -165,7 +171,7 @@ public enum Command {
         }
     },
     IN_USER_DATA {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             User user = new User(dis.readInt(), dis.readUTF());
             LogManager.getLogger(IN_USER_DATA.name()).trace(user);
@@ -175,7 +181,7 @@ public enum Command {
         }
     },
     OUT_SEND_ERROR {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(OUT_SEND_ERROR.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_ERROR.name());
@@ -184,7 +190,7 @@ public enum Command {
         }
     },
     IN_ERROR {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
             String errorDetails = dis.readUTF();
             Dialogs.showMessageTS("Ошибка", errorDetails);
@@ -193,7 +199,7 @@ public enum Command {
         }
     },
     OUT_CREATE_FOLDER {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(OUT_CREATE_FOLDER.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_CREATE_FOLDER.name());
@@ -202,7 +208,7 @@ public enum Command {
         }
     },
     IN_CREATE_FOLDER {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_CREATE_FOLDER.name()).trace(cmdParams);
             FileInfoCollector fileInfoCollector = cmdParams.getFileInfoCollector();
             if (fileInfoCollector != null) {
@@ -213,7 +219,7 @@ public enum Command {
         }
     },
     OUT_DELETE_ITEM {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(OUT_DELETE_ITEM.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_DELETE_ITEM.name());
@@ -222,7 +228,7 @@ public enum Command {
         }
     },
     IN_DELETE_ITEM {
-        void execute(CmdParams cmdParams) throws Exception {
+        public void execute(CmdParams cmdParams) throws Exception {
             LogManager.getLogger(IN_DELETE_ITEM.name()).trace(cmdParams);
             FileInfoCollector fileInfoCollector = cmdParams.getFileInfoCollector();
             if (fileInfoCollector != null) {
@@ -239,7 +245,7 @@ public enum Command {
         commandResultListeners = new ArrayList<>();
     }
 
-    abstract void execute(CmdParams commandParameters) throws Exception;
+    abstract public void execute(CmdParams commandParameters) throws Exception;
 
     public void addCommandResultListener(ResultListener commandResult) {
         if (commandResult != null) {
@@ -247,7 +253,7 @@ public enum Command {
         }
     }
 
-    interface ResultListener {
+    public interface ResultListener {
         void send(Object... objects);
     }
 }
