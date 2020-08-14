@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 
 public class FileInfoCollector {
     public static final Path MAIN_FOLDER = Paths.get(System.getProperty("user.dir"), "cloud_files");
+    public static final Path CLIENT_FOLDER = Paths.get(System.getProperty("user.dir"), "client_files");
     public static final Path UP_LEVEL = Paths.get("");
     private static final Logger logger = LogManager.getLogger(FileInfoCollector.class);
     private FileDb fileDb;
@@ -39,7 +40,7 @@ public class FileInfoCollector {
     }
 
     public FilesInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {//сокращенное название папки
-        return FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder));
+        return FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
         /*return FilesInfo.create()
                 .setFolder(folder)
                 .setFileList(fileDb.getFiles(clientHandler.getUser(), folder)

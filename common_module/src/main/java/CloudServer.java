@@ -40,9 +40,11 @@ public class CloudServer {
 
     public void init() {
         try {
-            FolderWatcherService.getInstance()
-                    .addFolder(FileInfoCollector.MAIN_FOLDER)
-                    .addChangeListener(this::refreshClientsFileList);
+            FolderWatcherService.getInstance().addChangeListener(FileSystemChangeListener.create()
+                    .setChangeListener(this::refreshClientsFileList)
+                    .setMonitoredFolderPath(FileInfoCollector.MAIN_FOLDER)
+                    .setRelativesPath(FileInfoCollector.MAIN_FOLDER)
+            );
         } catch (Exception e) {
             e.printStackTrace();
         }

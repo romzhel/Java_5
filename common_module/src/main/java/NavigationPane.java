@@ -13,16 +13,21 @@ public class NavigationPane {
     private List<NavigationListener> navigationListeners;
     private FlowPane flowPane;
     private Path rootPath;
-    private Path userFolder;
+    private Path relativePath;
+    private Path address;
 
-    public NavigationPane(FlowPane flowPane, Path rootPath) {
+    public NavigationPane(FlowPane flowPane, Path rootPath, Path relativePath) {
         navigationListeners = new ArrayList<>();
         this.flowPane = flowPane;
         this.rootPath = rootPath;
+        this.relativePath = relativePath;
+        address = Paths.get("");
     }
 
     public void setAddress(Path path) {
-        logger.trace("set address {}", path);
+        logger.trace("получен path = '{}'", path);
+        path = relativePath.relativize(path);
+        logger.trace("обработанный c '{}' path = '{}'", relativePath, path);
         flowPane.getChildren().clear();
         path = rootPath.resolve(path);
         for (int i = 0; i < path.getNameCount(); i++) {
@@ -32,11 +37,25 @@ public class NavigationPane {
                 navPath = navPath.resolve(path.getName(j));
             }
             hyperlink.setUserData(navPath);
+            logger.trace("ссылка '{}' = '{}'", i, navPath);
             flowPane.getChildren().addAll(hyperlink, new Hyperlink("\\"));
             hyperlink.setOnAction(event -> {
-                navigationListeners.forEach(action -> action.navigate((Path) hyperlink.getUserData()));
+                navigationListeners.forEach(action -> {
+                    Path navigatePath = relativePath.resolve((Path) hyperlink.getUserData());
+                    action.navigate(navigatePath);
+                    address = navigatePath;
+                    logger.debug("адрес = '{}'", address);
+                });
             });
         }
+    }
+
+    public Path getAddress() {
+        return address;
+    }
+
+    public void setRelativePath(Path relativePath) {
+        this.relativePath = relativePath;
     }
 
     public void addNavigationListener(NavigationListener navigationListener) {

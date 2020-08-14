@@ -16,7 +16,7 @@ public class ClientMainWindow extends Application {
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/clientWindow.fxml"));
 
         AnchorPane root = fxmlLoader.load();
-        Scene scene = new Scene(root);
+        Scene scene = new Scene(root, 590, 400);
         primaryStage.setScene(scene);
         String titleTemplate = "Клиент файлообменника (пользователь: %s)";
         primaryStage.setTitle(String.format(titleTemplate, User.UNREGISTERED.getNick()));

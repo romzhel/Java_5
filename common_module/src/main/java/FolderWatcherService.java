@@ -12,8 +12,7 @@ import java.util.Map;
 public class FolderWatcherService implements Runnable {
     private static final Logger logger = LogManager.getLogger(FolderWatcherService.class);
     private static FolderWatcherService instance;
-    private Path monitoredRootFolder;
-    private List<ChangeListener> changeListeners;
+    private List<FileSystemChangeListener> changeListeners;
     private Map<WatchKey, Path> keyPathMap = new HashMap<>();
     private WatchService watchService;
 
@@ -30,22 +29,28 @@ public class FolderWatcherService implements Runnable {
         return instance;
     }
 
-    public FolderWatcherService addFolder(Path monitoredRootFolder) throws IOException {
+    /*public FolderWatcherService addFolder(Path monitoredRootFolder) throws IOException {
         if (!Files.exists(monitoredRootFolder) || Files.isRegularFile(monitoredRootFolder)) {
             throw new RuntimeException("Недопустимая папка " + monitoredRootFolder);
         }
 
-        registerDir(monitoredRootFolder, watchService);
+        registerDir(monitoredRootFolder);
         return this;
-    }
+    }*/
 
-    public FolderWatcherService addChangeListener(ChangeListener changeListener) {
+    public FolderWatcherService addChangeListener(FileSystemChangeListener changeListener) throws Exception {
+        if (!Files.exists(changeListener.getMonitoredFolderPath()) || Files.isRegularFile(changeListener.getMonitoredFolderPath())) {
+            throw new RuntimeException("Недопустимая папка " + changeListener.getMonitoredFolderPath());
+        }
+
         changeListeners.add(changeListener);
+        registerDir(changeListener.getMonitoredFolderPath());
         return this;
     }
 
-    public void removeChangeListener(ChangeListener changeListener) {
+    public void removeChangeListener(FileSystemChangeListener changeListener) {
         changeListeners.remove(changeListener);
+        unregisterDir(changeListener.getMonitoredFolderPath());
     }
 
     public void start() throws Exception {
@@ -58,15 +63,13 @@ public class FolderWatcherService implements Runnable {
     @Override
     public void run() {
         try {
-//            WatchService watchService = FileSystems.getDefault().newWatchService();
-//            registerDir(monitoredRootFolder, watchService);
             startListening(watchService);
         } catch (Exception e) {
             logger.error("ошибка {}", e.getMessage(), e);
         }
     }
 
-    private void registerDir(Path path, WatchService watchService) throws IOException {
+    private void registerDir(Path path) throws IOException {
         if (!Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
             return;
         }
@@ -79,10 +82,29 @@ public class FolderWatcherService implements Runnable {
 
         for (File f : path.toFile().listFiles()) {
             if (f.isDirectory()) {
-                registerDir(f.toPath(), watchService);
+                registerDir(f.toPath());
             }
         }
-//        logger.trace("добавлен мониторинг папки {}", path);
+        logger.trace("добавлен мониторинг папки {}", path);
+    }
+
+    private void unregisterDir(Path path) {
+        for (Map.Entry<WatchKey, Path> entry : keyPathMap.entrySet()) {
+            if (path.equals(entry.getValue())) {
+                entry.getKey().cancel();
+
+                try {
+                    Files.walk(path)
+                            .filter(Files::isDirectory)
+                            .forEach(this::unregisterDir);
+                } catch (IOException e) {
+                    logger.error("ошибка отмены мониторинга папки {}", e.getMessage(), e);
+                }
+
+                logger.trace("мониторинг папки {} был отменен", path);
+                break;
+            }
+        }
     }
 
     private void startListening(WatchService watchService) throws Exception {
@@ -91,12 +113,16 @@ public class FolderWatcherService implements Runnable {
             WatchKey queuedKey = watchService.take();
             for (WatchEvent<?> watchEvent : queuedKey.pollEvents()) {
                 Path fullPath = keyPathMap.get(queuedKey).resolve((Path) watchEvent.context());
-                registerDir(fullPath, watchService);
-                logger.debug("обновлено {} в папке '{}'", fullPath,
-                        FileInfoCollector.MAIN_FOLDER.relativize(keyPathMap.get(queuedKey)));
+                registerDir(fullPath);
+                logger.debug("обновлено '{}'", fullPath);
                 Thread.sleep(500);
-                changeListeners.forEach(action -> {
-                    action.onChanged(FileInfoCollector.MAIN_FOLDER.relativize(keyPathMap.get(queuedKey)));
+                Path changedFolder = keyPathMap.get(queuedKey);
+                changeListeners.forEach(listener -> {
+                    if (changedFolder.startsWith(listener.getMonitoredFolderPath())) {
+                        Path changedRelativePath = listener.getMonitoredFolderPath().relativize(changedFolder);
+                        logger.debug("относительный путь '{}' = '{}'", listener.getMonitoredFolderPath(), changedRelativePath);
+                        listener.getChangeListener().onChanged(changedRelativePath);
+                    }
                 });
             }
             if (!queuedKey.reset()) {
@@ -107,9 +133,5 @@ public class FolderWatcherService implements Runnable {
                 break;
             }
         }
-    }
-
-    interface ChangeListener {
-        void onChanged(Path changedFolder);
     }
 }

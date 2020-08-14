@@ -10,6 +10,7 @@
       <sourceFolder url="file://$MODULE_DIR$/common" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/resources" type="java-resource" />
+      <excludeFolder url="file://$MODULE_DIR$/client_files" />
       <excludeFolder url="file://$MODULE_DIR$/cloud_files" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>

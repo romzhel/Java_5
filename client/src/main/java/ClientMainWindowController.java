@@ -6,6 +6,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.FlowPane;
+import javafx.stage.Stage;
 import javafx.util.Callback;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,31 +22,24 @@ import java.util.concurrent.Executors;
 
 public class ClientMainWindowController implements Initializable {
     private static final Logger logger = LogManager.getLogger(ClientMainWindowController.class);
+    public ListView<FileInfo> lvServerFiles;
+    public ListView<FileInfo> lvClientFiles;
+    public Button btnDownload;
+    public Button btnUpload;
+    public Button btnClose;
+    public Button btnLogin;
+    public Button btnRegistration;
+    public Button btnCreateFolder;
+    public Button btnBrowseClient;
+    public FlowPane fpServerNavigationPane;
+    public FlowPane fpClientNavigationPane;
     private ClientHandler clientHandler;
     private ExecutorService executorService;
     private Socket socket;
-
-    @FXML
-    private ListView<FileInfo> lvFiles;
-    @FXML
-    private Button btnDownload;
-    @FXML
-    private Button btnUpload;
-    @FXML
-    private Button btnClose;
-    @FXML
-    private Button btnLogin;
-    @FXML
-    private Button btnRegistration;
-    @FXML
-    private Button btnCreateFolder;
-    @FXML
-    private FlowPane fpNavigationPane;
+    private NavigationPane clientNavigationPane;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        initGui();
-
         try {
             executorService = Executors.newSingleThreadExecutor();
             socket = new Socket("localhost", 8189);
@@ -58,13 +52,24 @@ public class ClientMainWindowController implements Initializable {
                 }
             });
             executorService.submit(clientHandler);
-//            Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, ));
         } catch (Exception e) {
-
+//            logger.fatal("Не удалось запустить процессы обмена с сервером {}", e.getMessage(), e);
         }
+
+        initGui();
     }
 
     private void initGui() {
+        NavigationPane navigationPane = new NavigationPane(fpServerNavigationPane, Paths.get("..."), Paths.get(""));
+        navigationPane.addNavigationListener(path -> {
+            logger.trace("request navigation to {}", path);
+            try {
+                Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, path));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
         Command.IN_USER_DATA.addCommandResultListener(objects -> {
             User user = (User) objects[0];
             Platform.runLater(() -> {
@@ -72,9 +77,10 @@ public class ClientMainWindowController implements Initializable {
                 btnLogin.setVisible(false);
                 btnRegistration.setVisible(false);
             });
+            navigationPane.setRelativePath(Paths.get(user.getNick()));
         });
 
-        lvFiles.setCellFactory(new Callback<ListView<FileInfo>, ListCell<FileInfo>>() {
+        Callback<ListView<FileInfo>, ListCell<FileInfo>> listViewListCellCallback = new Callback<ListView<FileInfo>, ListCell<FileInfo>>() {
             @Override
             public ListCell<FileInfo> call(ListView<FileInfo> param) {
                 return new ListCell<FileInfo>() {
@@ -91,31 +97,24 @@ public class ClientMainWindowController implements Initializable {
                     }
                 };
             }
-        });
+        };
 
-        lvFiles.setOnMouseClicked(event -> {
+        lvServerFiles.setCellFactory(listViewListCellCallback);
+        lvServerFiles.setOnMouseClicked(event -> {
             if (event.getClickCount() == 2) {
                 fileFolderRequest();
             }
         });
 
-        NavigationPane navigationPane = new NavigationPane(fpNavigationPane, Paths.get("..."));
-        navigationPane.addNavigationListener(path -> {
-            logger.trace("request navigation to {}", path);
-            Path fullPath = Paths.get(clientHandler.getUser().getNick()).resolve(path);
-            try {
-                Command.OUT_SEND_FILE_LIST_REQUEST.execute(CmdParams.parse(clientHandler, fullPath));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        lvClientFiles.setCellFactory(listViewListCellCallback);
+
 
         Command.IN_FILES_LIST.addCommandResultListener(objects -> Platform.runLater(() -> {
             Path userPath = Paths.get(clientHandler.getUser().getNick());
             FilesInfo filesInfo = (FilesInfo) objects[0];
-            lvFiles.getItems().clear();
-            lvFiles.getItems().addAll(filesInfo.getFileList());
-            navigationPane.setAddress(userPath.relativize(filesInfo.getFolder()));
+            lvServerFiles.getItems().clear();
+            lvServerFiles.getItems().addAll(filesInfo.getFileList());
+            navigationPane.setAddress(filesInfo.getFolder());
         }));
 
         btnUpload.setOnAction(event -> {
@@ -156,7 +155,7 @@ public class ClientMainWindowController implements Initializable {
 
     @FXML
     private void fileFolderRequest() {
-        FileInfo selectedFileInfo = lvFiles.getSelectionModel().getSelectedItem();
+        FileInfo selectedFileInfo = lvServerFiles.getSelectionModel().getSelectedItem();
         if (selectedFileInfo == null) {
             throw new RuntimeException("Не выбран файл/папка");
         }
@@ -176,7 +175,7 @@ public class ClientMainWindowController implements Initializable {
     }
 
     public void delete() {
-        FileInfo selectedFileInfo = lvFiles.getSelectionModel().getSelectedItem();
+        FileInfo selectedFileInfo = lvServerFiles.getSelectionModel().getSelectedItem();
         if (selectedFileInfo == null) {
             throw new RuntimeException("Не выбран файл/папка");
         }
@@ -184,6 +183,50 @@ public class ClientMainWindowController implements Initializable {
         logger.trace("выбран элемент для удаления {}", selectedFileInfo);
         try {
             Command.OUT_DELETE_ITEM.execute(CmdParams.parse(clientHandler, selectedFileInfo.getPath()));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void switchClientBrowserView() {
+        try {
+            Stage stage = (Stage) btnBrowseClient.getScene().getWindow();
+            if (stage.getWidth() < 1000) {
+                stage.setWidth(1050);
+
+                if (clientNavigationPane == null) {
+                    Path defaultPath = FileInfoCollector.CLIENT_FOLDER;
+                    clientNavigationPane = new NavigationPane(fpClientNavigationPane, Paths.get("..."), defaultPath);
+                    clientNavigationPane.setAddress(defaultPath);
+
+                    lvClientFiles.getItems().clear();
+                    lvClientFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(defaultPath, defaultPath).getFileList());
+                    clientNavigationPane.addNavigationListener(path -> {
+                        logger.trace("навигация по клиенту {}", path);
+                        lvClientFiles.getItems().clear();
+                        lvClientFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(path, defaultPath).getFileList());
+                    });
+
+                    FolderWatcherService.getInstance().addChangeListener(FileSystemChangeListener.create()
+                            .setMonitoredFolderPath(defaultPath)
+                            .setChangeListener(changedFolder -> {
+                                logger.debug("изменения в папке '{}', текущая папка '{}'", changedFolder, clientNavigationPane.getAddress());
+                                if (clientNavigationPane.getAddress().equals(changedFolder)) {
+                                    Platform.runLater(() -> {
+                                        lvClientFiles.getItems().clear();
+                                        lvClientFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(changedFolder,
+                                                defaultPath).getFileList());
+                                    });
+                                }
+                            })
+                            .setRelativesPath(defaultPath)
+                    );
+                }
+            } else {
+                stage.setWidth(605);
+
+
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

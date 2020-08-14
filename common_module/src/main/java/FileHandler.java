@@ -55,7 +55,9 @@ public class FileHandler {
         }
 
 //        logger.trace("receiving file to '{}' ...", fileSaveLocationPath);
-        Files.createFile(fileSaveLocationPath);
+        if (Files.notExists(fileSaveLocationPath)) {
+            Files.createFile(fileSaveLocationPath);
+        }
 
         byte[] buffer = new byte[BUFFER_SIZE];
         try (FileOutputStream fos = new FileOutputStream(fileSaveLocationPath.toFile())) {
