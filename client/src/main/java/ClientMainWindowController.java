@@ -18,6 +18,7 @@ import processes.ClientHandler;
 import ui.Dialogs;
 import ui.LoginRegistrationDialog;
 import ui.NavigationPane;
+import ui.ShareDialog;
 
 import java.io.File;
 import java.net.Socket;
@@ -43,6 +44,7 @@ public class ClientMainWindowController implements Initializable {
     public Button btnBrowseClient;
     public Button btnCopyToServer;
     public Button btnCopyToClient;
+    public Button btnSharing;
     public FlowPane fpServerNavigationPane;
     public FlowPane fpClientNavigationPane;
     private ClientHandler clientHandler;
@@ -94,7 +96,7 @@ public class ClientMainWindowController implements Initializable {
             btnBrowseClient.setVisible(true);
 
             setVisible(false, btnLogin, btnRegistration);
-            setDisable(false, btnBrowseClient, btnDownload, btnUpload, btnCreateFolder, btnDelete);
+            setDisable(false, btnBrowseClient, btnSharing, btnDownload, btnUpload, btnCreateFolder, btnDelete);
         });
 
         Callback<ListView<FileInfo>, ListCell<FileInfo>> listViewListCellCallback = new Callback<ListView<FileInfo>, ListCell<FileInfo>>() {
@@ -184,6 +186,29 @@ public class ClientMainWindowController implements Initializable {
                 logger.error("Ошибка регистрации нового пользователя");
                 Dialogs.showMessageTS("Регистрация пользователя", e.getMessage());
             }
+        });
+
+        btnSharing.setOnAction(event -> {
+            FileInfo fileInfo = lvServerFiles.getSelectionModel().getSelectedItem();
+            if (fileInfo != null) {
+                try {
+                    Command.OUT_SEND_SHARING_DATA_REQUEST.execute(CmdParams.parse(clientHandler, fileInfo.getPath()));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        Command.IN_SHARING_DATA.addCommandResultListener(objects -> {
+            Platform.runLater(() -> {
+                try {
+                    Command.OUT_SEND_SHARING_DATA.execute(CmdParams.parse(clientHandler,
+                            new ShareDialog().getShareInfo((ShareInfo) objects[0])));
+//                    System.out.println(new ShareDialog().getShareInfo((ShareInfo) objects[0]));
+                } catch (Exception e) {
+                    logger.warn("ошибка ввода данных '{}'", e.getMessage());
+                }
+            });
         });
 
         btnClose.setOnAction(event -> {

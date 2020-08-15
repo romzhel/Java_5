@@ -1,27 +1,20 @@
 package database;
 
-import auth_service.User;
-import file_utils.FileInfoCollector;
+import file_utils.FileInfo;
+import file_utils.ShareInfo;
+import file_utils.UserShareInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FileDb {
-    private Connection connection;
-    private PreparedStatement saveMainInfo;
-    private PreparedStatement saveAccessInfo;
-    private PreparedStatement changeNick;
-
-    private PreparedStatement getFileList;
     private static final Logger logger = LogManager.getLogger(FileDb.class);
+    private Connection connection;
+    private PreparedStatement getFileMainInfo;
+    private PreparedStatement getFileUserList;
 
 
     public FileDb(Connection connection) {
@@ -29,60 +22,40 @@ public class FileDb {
     }
 
     public void init() throws Exception {
-        saveMainInfo = connection.prepareStatement("INSERT INTO files (file_name, owner_id) VALUES (?, ?)",
-                Statement.RETURN_GENERATED_KEYS);
-        saveAccessInfo = connection.prepareStatement("INSERT INTO files_access (file_id, user_id, rights) VALUES (?, ?, ?);");
-        getFileList = connection.prepareStatement("SELECT file_name, owner_id, user_id, rights FROM files JOIN files_access " +
-                "ON (files.id = files_access.file_id) WHERE file_name LIKE ? AND user_id = ?");
-
+        getFileMainInfo = connection.prepareStatement("SELECT file_name, main_flags, nick as owner " +
+                "FROM files JOIN users ON (users.id = files.owner_id) WHERE file_name LIKE ?;");
+        getFileUserList = connection.prepareStatement("SELECT file_name, users.nick, files_access.flags, owner_id " +
+                "FROM files_access JOIN files ON (files_access.file_id = files.id) JOIN users ON (files_access.user_id = users.id)" +
+                "WHERE file_name LIKE ?;");
     }
 
-    public void saveNewFile(String fileName, int userId) throws Exception {
-        connection.setAutoCommit(false);
+    public ShareInfo getShareInfo(String path) throws Exception {
+        logger.trace("получение всех данных по доступу к '{}'", path);
+        getFileMainInfo.setString(1, path);
+        ResultSet rs = getFileMainInfo.executeQuery();
 
-        saveMainInfo.setString(1, fileName);
-        saveMainInfo.setInt(2, userId);
-        saveMainInfo.executeUpdate();
 
-        int key;
-        ResultSet rs = saveMainInfo.getGeneratedKeys();
+        ShareInfo shareInfo = new ShareInfo();
+        shareInfo.setFileName(path);
+        shareInfo.setMainFlags(((byte) 0));
         if (rs.next()) {
-            key = rs.getInt(1);
-        } else {
-            connection.rollback();
-            connection.setAutoCommit(true);
-            rs.close();
-            throw new RuntimeException("Ошибка сохранения в базу данных основных сведений о файле");
+            shareInfo.setOwner(rs.getString("owner"));
+            shareInfo.setMainFlags(rs.getByte("main_flags"));
         }
+        rs.close();
 
-        saveAccessInfo.setInt(1, key);
-        saveAccessInfo.setInt(2, userId);
-        saveAccessInfo.setInt(3, 0);
-        int res = saveAccessInfo.executeUpdate();
+        getFileUserList.setString(1, path);
+        rs = getFileUserList.executeQuery();
 
-        if (res != 1) {
-            connection.rollback();
-            throw new RuntimeException("Ошибка сохранения в базу данных сведений о доступе к файлу");
+        while (rs.next()) {
+            shareInfo.addUserShareInfo(new UserShareInfo("", (byte) 0));
         }
-        connection.setAutoCommit(true);
-        logger.trace("данные о файле {} сохранены в БД", fileName);
+        rs.close();
+
+        return shareInfo;
     }
 
-    public List<Path> getFiles(User user, Path folder) throws Exception {
-        logger.trace("будет сделан запрос в БД: user = {}, folder = {}", user, folder);
-        String searchText = folder.equals(FileInfoCollector.UP_LEVEL) ? "%" : folder.toString() + "\\%";
-        logger.trace("search text = ", searchText);
-        getFileList.setString(1, searchText);
-        getFileList.setInt(2, user.getId());
-
-        ResultSet rs = getFileList.executeQuery();
-
-        List<Path> result = new ArrayList<>();
-        while (rs.next()) {
-            result.add(Paths.get(rs.getString("file_name")));
-        }
-        logger.trace("результат запроса из ДБ по файлам {}", result.size());
-
-        return result;
+    public void applyShareInfoChanges(FileInfo fileInfo) {
+        logger.trace("Входные данные {}", fileInfo);
     }
 }

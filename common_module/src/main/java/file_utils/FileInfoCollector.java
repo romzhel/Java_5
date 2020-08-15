@@ -39,6 +39,8 @@ public class FileInfoCollector {
 
         Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(this::createFolder);
         Command.IN_RECEIVE_REGISTRATION_DATA.addCommandResultListener(this::createFolder);
+        Command.IN_SHARING_DATA.addCommandResultListener(this::applyShareInfoChanges);
+        Command.IN_DELETE_ITEM.addCommandResultListener(this::applyItemDeleting);
     }
 
     private void createFolder(Object... objects) {
@@ -50,5 +52,17 @@ public class FileInfoCollector {
 
     public FolderInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {
         return FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
+    }
+
+    public ShareInfo getShareInfo(String path) throws Exception {
+        return fileDb.getShareInfo(path);
+    }
+
+    public void applyShareInfoChanges(Object... objects) {
+        fileDb.applyShareInfoChanges((FileInfo) objects[0]);
+    }
+
+    public void applyItemDeleting(Object... objects) {
+        //TODO рекурсивное удаление из БД
     }
 }

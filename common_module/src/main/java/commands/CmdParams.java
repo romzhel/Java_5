@@ -2,6 +2,7 @@ package commands;
 
 import file_utils.FileInfoCollector;
 import file_utils.FolderInfo;
+import file_utils.ShareInfo;
 import processes.ClientHandler;
 import processes.CloudServer;
 
@@ -16,6 +17,7 @@ public class CmdParams {
     private FileInfoCollector fileInfoCollector;
     private List<String> stringParams;
     private FolderInfo filesInfo;
+    private ShareInfo shareInfo;
 
     private CmdParams() {
         stringParams = new ArrayList<>();
@@ -38,6 +40,8 @@ public class CmdParams {
                 result.filesInfo = (FolderInfo) object;
             } else if (object instanceof Path) {
                 result.stringParams.add(object.toString());
+            } else if (object instanceof ShareInfo) {
+                result.shareInfo = (ShareInfo) object;
             } else {
                 throw new RuntimeException("Неизвестный тип параметра команды " + object + "\n\n");
             }
@@ -64,6 +68,10 @@ public class CmdParams {
 
     public FolderInfo getFilesInfo() {
         return filesInfo;
+    }
+
+    public ShareInfo getShareInfo() {
+        return shareInfo;
     }
 
     @Override

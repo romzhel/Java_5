@@ -4,11 +4,14 @@ import auth_service.User;
 import file_utils.FileHandler;
 import file_utils.FileInfoCollector;
 import file_utils.FolderInfo;
+import file_utils.ShareInfo;
 import org.apache.logging.log4j.LogManager;
 import ui.Dialogs;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -270,6 +273,50 @@ public enum Command {
             for (ResultListener rs : commandResultListeners) {
                 rs.send(user);
             }
+        }
+    },
+    OUT_SEND_SHARING_DATA_REQUEST {
+        public void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_SEND_SHARING_DATA_REQUEST.name()).trace(cmdParams);
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(IN_SHARING_DATA_REQUEST_AND_SEND_BACK_RESULT.name());
+            dos.writeUTF(cmdParams.getStringParams().get(0));
+        }
+    },
+    IN_SHARING_DATA_REQUEST_AND_SEND_BACK_RESULT {
+        public void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(IN_SHARING_DATA_REQUEST_AND_SEND_BACK_RESULT.name()).trace(cmdParams);
+            DataInputStream dis = cmdParams.getClientHandler().getDataInputStream();
+            String path = dis.readUTF();
+            if (!path.startsWith(cmdParams.getClientHandler().getUser().getNick())) {
+                throw new RuntimeException("Вы не являетесь собственником");
+            }
+
+            ShareInfo shareInfo = cmdParams.getFileInfoCollector().getShareInfo(path);
+            LogManager.getLogger(IN_SHARING_DATA_REQUEST_AND_SEND_BACK_RESULT.name()).trace("результат для отправки = {}", shareInfo);
+            cmdParams.getClientHandler().getDataOutputStream().writeUTF(IN_SHARING_DATA.name());
+            ObjectOutputStream oos = new ObjectOutputStream(cmdParams.getClientHandler().getDataOutputStream());
+            oos.writeObject(shareInfo);
+            oos.flush();
+        }
+    },
+    IN_SHARING_DATA {
+        public void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(IN_SHARING_DATA.name()).trace(cmdParams);
+            ObjectInputStream ois = new ObjectInputStream(cmdParams.getClientHandler().getDataInputStream());
+            ShareInfo shareInfo = (ShareInfo) ois.readObject();
+            LogManager.getLogger(IN_SHARING_DATA.name()).trace(shareInfo);
+            commandResultListeners.forEach(action -> action.send(shareInfo));
+        }
+    },
+    OUT_SEND_SHARING_DATA {
+        public void execute(CmdParams cmdParams) throws Exception {
+            LogManager.getLogger(OUT_SEND_SHARING_DATA.name()).trace(cmdParams.getShareInfo());
+            DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
+            dos.writeUTF(IN_SHARING_DATA.name());
+            ObjectOutputStream oos = new ObjectOutputStream(cmdParams.getClientHandler().getDataOutputStream());
+            oos.writeObject(cmdParams.getShareInfo());
+            oos.flush();
         }
     };
 
