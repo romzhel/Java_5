@@ -76,6 +76,8 @@ public class ShareDialog {
             }
         });
 
+        lvUsersShare.getItems().addAll(shareInfo.getUserShareInfoList());
+
         btnAddUser.setOnAction(event -> {
             if (!tfAddUser.getText().isEmpty()) {
                 for (UserShareInfo usi : shareInfo.getUserShareInfoList()) {

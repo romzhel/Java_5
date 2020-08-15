@@ -347,7 +347,7 @@ public class ClientMainWindowController implements Initializable {
                     FolderWatcherService.getInstance().addChangeListener(FileSystemChangeListener.create()
                             .setMonitoredFolderPath(defaultPath)
                             .setRelativesPath(defaultPath)
-                            .setChangeListener(changedFolder -> {
+                            .setChangeListener((changedFolder, changedItem) -> {
                                 logger.debug("изменения в папке '{}', текущая папка '{}'", changedFolder, clientNavigationPane.getAddress());
                                 if (clientNavigationPane.getAddress().equals(changedFolder)) {
                                     Platform.runLater(() -> {

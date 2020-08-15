@@ -94,7 +94,7 @@ public class ServerMainWindowController implements Initializable {
             lvServerFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER,
                     FileInfoCollector.MAIN_FOLDER).getFileList());
             FolderWatcherService.getInstance().addChangeListener(FileSystemChangeListener.create()
-                    .setChangeListener(changedFolder -> {
+                    .setChangeListener((changedFolder, changedItem) -> {
                         Platform.runLater(() -> {
                             FolderInfo filesInfo = FileSystemRequester.getDetailedPathInfo(FileInfoCollector.MAIN_FOLDER,
                                     FileInfoCollector.MAIN_FOLDER);

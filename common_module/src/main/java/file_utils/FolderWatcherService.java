@@ -6,10 +6,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class FolderWatcherService implements Runnable {
     private static final Logger logger = LogManager.getLogger(FolderWatcherService.class);
@@ -120,10 +117,11 @@ public class FolderWatcherService implements Runnable {
                 Thread.sleep(500);
                 Path changedFolder = keyPathMap.get(queuedKey);
                 changeListeners.forEach(listener -> {
-                    if (changedFolder.startsWith(listener.getMonitoredFolderPath())) {
-                        Path changedRelativePath = listener.getMonitoredFolderPath().relativize(changedFolder);
+                    if (changedFolder.startsWith(listener.getMonitoredFolderPath()) &&
+                            (listener.getEventTypes() == null || Arrays.asList(listener.getEventTypes()).contains(watchEvent.kind()))) {
+                        Path changedRelativePath = listener.getRelativesPath().relativize(changedFolder);
                         logger.debug("относительный путь '{}' = '{}'", listener.getMonitoredFolderPath(), changedRelativePath);
-                        listener.getChangeListener().onChanged(changedRelativePath);
+                        listener.getChangeListener().onChanged(changedRelativePath, listener.getRelativesPath().relativize(fullPath));
                     }
                 });
             }

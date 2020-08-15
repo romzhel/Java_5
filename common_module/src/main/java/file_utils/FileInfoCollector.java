@@ -1,6 +1,7 @@
 package file_utils;
 
 import auth_service.User;
+import commands.CmdParams;
 import commands.Command;
 import database.DataBase;
 import database.FileDb;
@@ -11,6 +12,8 @@ import processes.ClientHandler;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
 
 public class FileInfoCollector {
     public static final Path MAIN_FOLDER = Paths.get(System.getProperty("user.dir"), "cloud_files");
@@ -40,7 +43,12 @@ public class FileInfoCollector {
         Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(this::createFolder);
         Command.IN_RECEIVE_REGISTRATION_DATA.addCommandResultListener(this::createFolder);
         Command.IN_SHARING_DATA.addCommandResultListener(this::applyShareInfoChanges);
-        Command.IN_DELETE_ITEM.addCommandResultListener(this::applyItemDeleting);
+
+        FolderWatcherService.getInstance().addChangeListener(FileSystemChangeListener.create()
+                .setChangeListener(this::applyItemDeleting)
+                .setMonitoredFolderPath(MAIN_FOLDER)
+                .setRelativesPath(MAIN_FOLDER)
+                .setEventTypes(new WatchEvent.Kind[]{StandardWatchEventKinds.ENTRY_DELETE}));
     }
 
     private void createFolder(Object... objects) {
@@ -59,10 +67,44 @@ public class FileInfoCollector {
     }
 
     public void applyShareInfoChanges(Object... objects) {
-        fileDb.applyShareInfoChanges((FileInfo) objects[0]);
+        ShareInfo shareInfo = (ShareInfo) objects[0];
+        logger.trace("синхронизация с БД {}", shareInfo);
+        String path = shareInfo.getFileName();
+
+        try {
+            if (!fileDb.updateFileMainInfo(shareInfo)) {
+                fileDb.addFileMainInfo(shareInfo);
+            }
+
+            for (UserShareInfo usi : shareInfo.getAddedItems()) {
+                if (!fileDb.updateFileInfo(path, usi)) {
+                    fileDb.addFileInfo(path, usi);
+                }
+            }
+
+            for (UserShareInfo usi : shareInfo.getDeletedItems()) {
+                fileDb.deleteFileInfo(path, usi);
+            }
+        } catch (Exception e) {
+            logger.error("ошибка работы БД {}", e.getMessage(), e);
+            try {
+                Command.OUT_SEND_ERROR.execute(CmdParams.parse(e.getMessage()));
+            } catch (Exception exception) {
+                logger.error("ошибка отправки сообщения об ошибке {}", e.getMessage(), e);
+            }
+        }
     }
 
-    public void applyItemDeleting(Object... objects) {
-        //TODO рекурсивное удаление из БД
+    public void applyItemDeleting(Path parentFolder, Path deletedItem) {
+        logger.trace("обнаружено удаление объекта {}", deletedItem);
+        try {
+            fileDb.deleteFileMainInfo(deletedItem.toString());
+        } catch (Exception e) {
+            logger.error("ошибка работы БД {}", e.getMessage(), e);
+            try {
+                Command.OUT_SEND_ERROR.execute(CmdParams.parse(e.getMessage()));
+            } catch (Exception exception) {
+            }
+        }
     }
 }
