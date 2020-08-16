@@ -83,16 +83,16 @@ public class FileInfoCollector {
         } else if (folder.toString().startsWith(nick)) {
             folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
             logger.trace("доступные ресурсы на диске {}", folderInfo);
-        } else if (folder.getNameCount() == 1 || selectedFolder.getNameCount() < folder.getNameCount()) {
+        } else /*if (folder.getNameCount() == 1 || selectedFolder.getNameCount() < folder.getNameCount())*/ {
             folderInfo = FolderInfo.create()
                     .setFolder(folder)
                     .setFileList(treatFoldersFromDb(clientHandler, folder));
             logger.trace("доступные в корне папки в БД и файлы на диске {}", folderInfo);
-        } else {
+        } /*else {
             folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
             folderInfo.getFileList().addAll(treatFoldersFromDb(clientHandler, folder));
             logger.trace("доступные папки в БД и файлы на диске {}", folderInfo);
-        }
+        }*/
 
         return folderInfo;
     }

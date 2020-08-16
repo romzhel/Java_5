@@ -26,7 +26,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -139,7 +138,7 @@ public class ClientMainWindowController implements Initializable {
             FolderInfo filesInfo = (FolderInfo) objects[0];
             logger.trace("получены данные по составу папки {}", filesInfo);
             lvServerFiles.getItems().clear();
-            lvServerFiles.getItems().addAll(new HashSet<>(filesInfo.getFileList()));
+            lvServerFiles.getItems().addAll(filesInfo.getFileList());
             navigationPane.setAddress(filesInfo.getFolder());
         }));
 
@@ -334,7 +333,7 @@ public class ClientMainWindowController implements Initializable {
                 if (clientNavigationPane == null) {
                     Path defaultPath = FileInfoCollector.CLIENT_FOLDER;
                     clientNavigationPane = new NavigationPane(fpClientNavigationPane, Paths.get("..."), defaultPath);
-                    clientNavigationPane.setAddress(Paths.get(""));
+                    clientNavigationPane.setAddress(Paths.get(""));//TODO defaultPath
 
                     lvClientFiles.getItems().clear();
                     lvClientFiles.getItems().addAll(FileSystemRequester.getDetailedPathInfo(defaultPath, defaultPath).getFileList());
