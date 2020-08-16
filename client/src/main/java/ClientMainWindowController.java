@@ -137,32 +137,41 @@ public class ClientMainWindowController implements Initializable {
         }));
 
         btnUpload.setOnAction(event -> {
-            File uploadedFile = Dialogs.selectAnyFileTS(null, "Выбор файла для загрузки на сервер", null);
-            if (uploadedFile == null || !uploadedFile.exists()) {
-                return;
-            }
-            try {
-                Command.OUT_SEND_FILE.execute(CmdParams.parse(clientHandler, uploadedFile.toPath()));
-            } catch (Exception e) {
-                Dialogs.showMessageTS("Загрузка файла на сервер", "Ошибка:\n\n" + e.getMessage());
+            FileInfo fileInfo = focusedFileList.getSelectionModel().getSelectedItem();
+            if (navigationPane.getAddress().startsWith(clientHandler.getUser().getNick())) {
+                File uploadedFile = Dialogs.selectAnyFileTS(null, "Выбор файла для загрузки на сервер", null);
+                if (uploadedFile == null || !uploadedFile.exists()) {
+                    return;
+                }
+                try {
+                    Command.OUT_SEND_FILE.execute(CmdParams.parse(clientHandler, uploadedFile.toPath()));
+                } catch (Exception e) {
+                    Dialogs.showMessageTS("Загрузка файла на сервер", "Ошибка:\n\n" + e.getMessage());
+                }
+            } else {
+                Dialogs.showMessageTS("Загрузка файла на сервер", "Вы не являетесь собственником папки");
             }
         });
 
         btnCreateFolder.setOnAction(event -> {
             if (focusedFileList != null) {
-                String folderName = Dialogs.TextInputDialog("Добавление папки", "Введите название папки");
-                if (!folderName.isEmpty()) {
-                    try {
-                        if (focusedFileList == lvServerFiles) {
-                            Command.OUT_CREATE_FOLDER.execute(CmdParams.parse(clientHandler, folderName));
-                        } else if (focusedFileList == lvClientFiles) {
-                            Files.createDirectory(FileInfoCollector.CLIENT_FOLDER
-                                    .resolve(clientNavigationPane.getAddress())
-                                    .resolve(folderName));
+                if (navigationPane.getAddress().startsWith(clientHandler.getUser().getNick())) {
+                    String folderName = Dialogs.TextInputDialog("Добавление папки", "Введите название папки");
+                    if (!folderName.isEmpty()) {
+                        try {
+                            if (focusedFileList == lvServerFiles) {
+                                Command.OUT_CREATE_FOLDER.execute(CmdParams.parse(clientHandler, folderName));
+                            } else if (focusedFileList == lvClientFiles) {
+                                Files.createDirectory(FileInfoCollector.CLIENT_FOLDER
+                                        .resolve(clientNavigationPane.getAddress())
+                                        .resolve(folderName));
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     }
+                } else {
+                    Dialogs.showMessageTS("Создание папки", "Вы не являетесь собственником");
                 }
             } else {
                 Dialogs.showMessageTS("Создание папки", "Не был выбран ни один из списков, в котором нужно создать папку");
@@ -190,12 +199,14 @@ public class ClientMainWindowController implements Initializable {
 
         btnSharing.setOnAction(event -> {
             FileInfo fileInfo = lvServerFiles.getSelectionModel().getSelectedItem();
-            if (fileInfo != null) {
+            if (fileInfo != null && fileInfo.isFolder()) {
                 try {
                     Command.OUT_SEND_SHARING_DATA_REQUEST.execute(CmdParams.parse(clientHandler, fileInfo.getPath()));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            } else {
+                Dialogs.showMessage("Настройка прав доступа", "Необходимо выбрать папку");
             }
         });
 
@@ -340,7 +351,6 @@ public class ClientMainWindowController implements Initializable {
                                 lvClientFiles.getItems().addAll(filesInfo.getFileList());
                                 clientNavigationPane.setAddress(fileInfo.getPath());
                             }
-
                         }
                     });
 

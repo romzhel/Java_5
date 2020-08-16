@@ -29,7 +29,8 @@ public class NavigationPane {
     public void setAddress(Path path) {
         logger.trace("получен path = '{}', relative path = '{}'", path, relativePath);
         address = path;
-        path = relativePath.getRoot() != null ? path : relativePath.relativize(path);
+        path = relativePath.getRoot() != null || relativePath.toString().isEmpty() || !path.startsWith(relativePath) ?
+                path : relativePath.relativize(path);
         logger.trace("обработанный c '{}' path = '{}'", relativePath, path);
         flowPane.getChildren().clear();
         path = rootPath.resolve(path);
@@ -43,8 +44,9 @@ public class NavigationPane {
             logger.trace("ссылка '{}' = '{}'", i, navPath);
             flowPane.getChildren().addAll(hyperlink, new Hyperlink("\\"));
             hyperlink.setOnAction(event -> {
-                Path navigatePath = relativePath.getRoot() != null ? (Path) hyperlink.getUserData() :
-                        relativePath.resolve((Path) hyperlink.getUserData());
+                Path selectedPath = (Path) hyperlink.getUserData();
+                Path navigatePath = relativePath.getRoot() != null ? selectedPath :
+                        selectedPath.startsWith(relativePath) || selectedPath.toString().isEmpty() ? relativePath.resolve(selectedPath) : selectedPath;
                 address = navigatePath;
                 logger.debug("адрес = '{}'", address);
 

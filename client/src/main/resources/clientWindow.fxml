@@ -11,9 +11,8 @@
               prefWidth="129.0" text="&gt;&gt;&gt;&gt;&gt;" visible="false"/>
       <ListView fx:id="lvServerFiles" layoutX="23.0" layoutY="22.0" prefHeight="280.0" prefWidth="434.0"
                 AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="10.0" AnchorPane.topAnchor="70.0"/>
-      <Button fx:id="btnDownload" disable="true" layoutX="453.0" layoutY="194.0" mnemonicParsing="false"
-              onAction="#fileFolderRequest" prefHeight="25.0" prefWidth="129.0" text="Скачать с сервера"
-              AnchorPane.leftAnchor="453.0"/>
+      <Button fx:id="btnDownload" layoutX="453.0" layoutY="194.0" mnemonicParsing="false" onAction="#fileFolderRequest"
+              prefHeight="25.0" prefWidth="129.0" text="Скачать с сервера" AnchorPane.leftAnchor="453.0"/>
       <Button fx:id="btnUpload" disable="true" layoutX="453.0" layoutY="223.0" mnemonicParsing="false" prefHeight="25.0"
               prefWidth="129.0" text="Загрузить на сервер"/>
       <Button fx:id="btnClose" layoutX="453.0" layoutY="361.0" mnemonicParsing="false" prefHeight="25.0"

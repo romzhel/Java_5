@@ -19,18 +19,21 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
     private FileSystemRequester() {
     }
 
-    public static FolderInfo getDetailedPathInfo(Path fullPath, Path relativePath) {
-        logger.debug("запрошен состав папки '{}' с относительным путём '{}'", fullPath, relativePath);
+    public static FolderInfo getDetailedPathInfo(Path fullPath, Path relativePath, boolean... onlyFiles) {
+        logger.debug("запрошен состав папки '{}' с относительным путём '{}', только файлы {}", fullPath, relativePath, onlyFiles);
         if (fullPath.getRoot() == null) {
             fullPath = relativePath.resolve(fullPath);
         }
         logger.debug("поиск файлов в '{}'", fullPath);
+
+        boolean isNotOnlyFiles = onlyFiles.length == 0 || !onlyFiles[0];
+
         try {
             Path finalFullPath = fullPath;
             return FolderInfo.create()
                     .setFolder(relativePath.relativize(fullPath))
                     .setFileList(Files.walk(fullPath)
-                            .filter(path1 -> path1.getParent().equals(finalFullPath))
+                            .filter(path1 -> path1.getParent().equals(finalFullPath) && (Files.isRegularFile(path1) || isNotOnlyFiles))
                             .map(path -> getPathInfo(path, relativePath))
                             .sorted((o1, o2) -> (o1.isFolder() ? 0 : 1) - (o2.isFolder() ? 0 : 1))
                             .collect(Collectors.toList()));

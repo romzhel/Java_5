@@ -101,7 +101,7 @@ public enum Command {
             LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace(cmdParams);
             DataOutputStream dos = cmdParams.getClientHandler().getDataOutputStream();
             dos.writeUTF(IN_FILES_LIST.name());
-            FolderInfo filesInfo = cmdParams.getFileInfoCollector().getFilesInfo(cmdParams.getClientHandler(),
+            FolderInfo filesInfo = cmdParams.getFileInfoCollector().getCompleteFilesInfo(cmdParams.getClientHandler(),
                     Paths.get(cmdParams.getStringParams().get(0)));
             LogManager.getLogger(OUT_SEND_FILE_LIST.name()).trace("отправка списка файлов клиенту {}", filesInfo);
             filesInfo.sendTo(cmdParams.getClientHandler());

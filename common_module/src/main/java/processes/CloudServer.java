@@ -59,10 +59,10 @@ public class CloudServer {
         }
     }
 
-    private void refreshClientsFileList(Object... objects) {
+    public void refreshClientsFileList(Object... objects) {
         for (ClientHandler clientHandler : clientList) {
             Path currentFolder = clientHandler.getSelectedFolder();
-            if (((Path) objects[0]).equals(currentFolder)) {
+            if ((objects[0]).equals(currentFolder)) {
                 try {
                     logger.trace("обновление клиента {} папки {}", clientHandler, currentFolder);
                     Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, currentFolder));
@@ -78,7 +78,6 @@ public class CloudServer {
         Thread clientHandlersThread = new Thread(() -> {
             try {
                 fileInfoCollector.start();
-//                folderWatcherService.start();
                 authService.start();
                 serverSocket = new ServerSocket(8189);
                 logger.trace("сервер запущен, ожидание подключения клиентов");
@@ -115,6 +114,7 @@ public class CloudServer {
         clientHandler.setCloseListener(() -> clientList.remove(clientHandler));
         Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(objects -> sendFileList(clientHandler));
         Command.IN_RECEIVE_REGISTRATION_DATA.addCommandResultListener(objects -> sendFileList(clientHandler));
+        sendFileList(clientHandler);
     }
 
     private void sendFileList(ClientHandler clientHandler) {

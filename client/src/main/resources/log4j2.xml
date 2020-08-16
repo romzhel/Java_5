@@ -11,7 +11,7 @@
 
         <Console name="STDOUT" target="SYSTEM_OUT">
             <!--            <ThresholdFilter level="trace" onMatch="ACCEPT" onMismatch="DENY"/>-->
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%-10.-10t] %-5level %logger{36} - %msg%n"/>
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%-10.-10t]ud %-5level %logger{36} - %msg%n"/>
         </Console>
     </Appenders>
 

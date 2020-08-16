@@ -10,10 +10,9 @@ import org.apache.logging.log4j.Logger;
 import processes.ClientHandler;
 
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
+import java.nio.file.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class FileInfoCollector {
     public static final Path MAIN_FOLDER = Paths.get(System.getProperty("user.dir"), "cloud_files");
@@ -58,12 +57,52 @@ public class FileInfoCollector {
         }
     }
 
-    public FolderInfo getFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {
-        return FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
+    public FolderInfo getCompleteFilesInfo(ClientHandler clientHandler, Path folder) throws Exception {
+        logger.trace("выполняется запрос по всем доступным файлам в папке '{}'", folder);
+        Path selectedFolder = clientHandler.getSelectedFolder();
+        String nick = clientHandler.getUser().getNick();
+        FolderInfo folderInfo = null;
+
+        if (folder.equals(UP_LEVEL) && clientHandler.getUser().equals(User.UNREGISTERED)) {
+            folderInfo = FolderInfo.create()
+                    .setFolder(folder)
+                    .setFileList(treatFoldersFromDb(clientHandler, folder));
+            logger.trace("доступные ресурсы в БД {}", folderInfo);
+        } else if ((folder.equals(UP_LEVEL) || folder.toString().equals(nick)) && !clientHandler.getUser().equals(User.UNREGISTERED)) {
+            folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
+            folderInfo.getFileList().addAll(treatFoldersFromDb(clientHandler, UP_LEVEL));
+            logger.trace("доступные ресурсы в БД и на диске {}", folderInfo);
+        } else if (folder.toString().startsWith(nick)) {
+            folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
+            logger.trace("доступные ресурсы на диске {}", folderInfo);
+        } else if (folder.getNameCount() == 1) {
+            folderInfo = FolderInfo.create()
+                    .setFolder(folder)
+                    .setFileList(treatFoldersFromDb(clientHandler, folder));
+            /*folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER, true);
+            folderInfo.getFileList().addAll(treatFoldersFromDb(clientHandler, folder));*/
+            logger.trace("доступные в корне папки в БД и файлы на диске {}", folderInfo);
+        } else {
+            folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER, true);
+            folderInfo.getFileList().addAll(treatFoldersFromDb(clientHandler, folder));
+            logger.trace("доступные папки в БД и файлы на диске {}", folderInfo);
+        }
+
+        return folderInfo;
+    }
+
+    private List<FileInfo> treatFoldersFromDb(ClientHandler clientHandler, Path folder) throws Exception {
+//        logger.trace("доступные расшаренные ресурсы в БД для '{}' = '{}'", clientHandler.getSelectedFolder(),  dbSharedFolders);
+        return fileDb.getSharedFoldersForUser(clientHandler.getUser(), folder.toString()).stream()
+                .filter(path -> !path.toString().startsWith(clientHandler.getUser().getNick()))
+                .map(path -> folder.toString().isEmpty() ? path.getName(0) : path.subpath(0, folder.getNameCount() + 1))
+                .distinct()
+                .map(path -> FileInfo.create(path, 0L, Files.isDirectory(MAIN_FOLDER.resolve(path))))
+                .collect(Collectors.toList());
     }
 
     public ShareInfo getShareInfo(String path) throws Exception {
-        return fileDb.getShareInfo(path);
+        return fileDb.getSingleFolderShareInfo(path);
     }
 
     public void applyShareInfoChanges(Object... objects) {

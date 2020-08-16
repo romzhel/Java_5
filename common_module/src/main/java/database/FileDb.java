@@ -1,19 +1,24 @@
 package database;
 
+import auth_service.User;
 import file_utils.ShareInfo;
 import file_utils.UserShareInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class FileDb {
     private static final Logger logger = LogManager.getLogger(FileDb.class);
     private Connection connection;
     private PreparedStatement getFileMainInfo;
+    private PreparedStatement getSharedFoldersForUser;
     private PreparedStatement getFileUserList;
     private PreparedStatement addFileMainInfo;
     private PreparedStatement updateFileMainInfo;
@@ -33,6 +38,11 @@ public class FileDb {
         getFileUserList = connection.prepareStatement("SELECT nick, flags " +
                 "FROM files_access JOIN files ON (files_access.file_id = files.id) JOIN users ON (files_access.user_id = users.id) " +
                 "WHERE file_name LIKE ?;");
+
+        getSharedFoldersForUser = connection.prepareStatement("SELECT file_name FROM files WHERE file_name LIKE ? AND " +
+                "((main_flags & 1 > 0) OR ((main_flags & 4 > 0) AND ((SELECT COUNT(*) FROM users WHERE nick LIKE ?) > 0)) " +
+                "OR (id IN (SELECT file_id FROM files_access WHERE user_id IN (SELECT id FROM users WHERE nick LIKE ?))))");
+
         addFileMainInfo = connection.prepareStatement("INSERT INTO files (file_name, owner_id, main_flags) " +
                 "VALUES (?, (SELECT id FROM users WHERE nick = ?), ?);");
         updateFileMainInfo = connection.prepareStatement("UPDATE files SET main_flags = ? WHERE file_name LIKE ?;");
@@ -45,7 +55,7 @@ public class FileDb {
                 "AND user_id = (SELECT id FROM users WHERE nick = ?) AND flags = ?;");
     }
 
-    public ShareInfo getShareInfo(String path) throws Exception {
+    public ShareInfo getSingleFolderShareInfo(String path) throws Exception {
         logger.trace("получение всех данных по доступу к '{}'", path);
         getFileMainInfo.setString(1, path);
         ResultSet rs = getFileMainInfo.executeQuery();
@@ -69,6 +79,22 @@ public class FileDb {
         rs.close();
 
         return shareInfo;
+    }
+
+    public List<Path> getSharedFoldersForUser(User user, String initialFolder) throws Exception {
+        logger.trace("получение расшаренных папок для '{}' в папке {}", user, initialFolder);
+        getSharedFoldersForUser.setString(1, initialFolder + "_%");
+        getSharedFoldersForUser.setString(2, user.getNick());
+        getSharedFoldersForUser.setString(3, user.getNick());
+        ResultSet rs = getSharedFoldersForUser.executeQuery();
+
+        List<Path> sharedFolders = new ArrayList<>();
+        while (rs.next()) {
+            sharedFolders.add(Paths.get(rs.getString("file_name")));
+        }
+        logger.trace("результат {}", sharedFolders);
+
+        return sharedFolders;
     }
 
     public boolean addFileMainInfo(ShareInfo shareInfo) throws Exception {
