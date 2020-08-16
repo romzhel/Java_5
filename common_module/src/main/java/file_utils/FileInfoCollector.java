@@ -8,6 +8,7 @@ import database.FileDb;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import processes.ClientHandler;
+import processes.CloudServer;
 
 import java.io.File;
 import java.nio.file.*;
@@ -41,10 +42,17 @@ public class FileInfoCollector {
 
         Command.IN_LOGIN_DATA_CHECK_AND_SEND_BACK_NICK.addCommandResultListener(this::createFolder);
         Command.IN_RECEIVE_REGISTRATION_DATA.addCommandResultListener(this::createFolder);
-        Command.IN_SHARING_DATA.addCommandResultListener(this::applyShareInfoChanges);
+        Command.IN_SHARING_DATA.addCommandResultListener(objects -> {
+            applyShareInfoChangesToDb(objects);
+            try {
+                CloudServer.getInstance().refreshClientsFileList(Paths.get(((ShareInfo) objects[0]).getFileName()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
 
         FolderWatcherService.getInstance().addChangeListener(FileSystemChangeListener.create()
-                .setChangeListener(this::applyItemDeleting)
+                .setChangeListener(this::applyItemDeletingFromDb)
                 .setMonitoredFolderPath(MAIN_FOLDER)
                 .setRelativesPath(MAIN_FOLDER)
                 .setEventTypes(new WatchEvent.Kind[]{StandardWatchEventKinds.ENTRY_DELETE}));
@@ -75,15 +83,13 @@ public class FileInfoCollector {
         } else if (folder.toString().startsWith(nick)) {
             folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
             logger.trace("доступные ресурсы на диске {}", folderInfo);
-        } else if (folder.getNameCount() == 1) {
+        } else if (folder.getNameCount() == 1 || selectedFolder.getNameCount() < folder.getNameCount()) {
             folderInfo = FolderInfo.create()
                     .setFolder(folder)
                     .setFileList(treatFoldersFromDb(clientHandler, folder));
-            /*folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER, true);
-            folderInfo.getFileList().addAll(treatFoldersFromDb(clientHandler, folder));*/
             logger.trace("доступные в корне папки в БД и файлы на диске {}", folderInfo);
         } else {
-            folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER, true);
+            folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
             folderInfo.getFileList().addAll(treatFoldersFromDb(clientHandler, folder));
             logger.trace("доступные папки в БД и файлы на диске {}", folderInfo);
         }
@@ -92,7 +98,6 @@ public class FileInfoCollector {
     }
 
     private List<FileInfo> treatFoldersFromDb(ClientHandler clientHandler, Path folder) throws Exception {
-//        logger.trace("доступные расшаренные ресурсы в БД для '{}' = '{}'", clientHandler.getSelectedFolder(),  dbSharedFolders);
         return fileDb.getSharedFoldersForUser(clientHandler.getUser(), folder.toString()).stream()
                 .filter(path -> !path.toString().startsWith(clientHandler.getUser().getNick()))
                 .map(path -> folder.toString().isEmpty() ? path.getName(0) : path.subpath(0, folder.getNameCount() + 1))
@@ -105,7 +110,7 @@ public class FileInfoCollector {
         return fileDb.getSingleFolderShareInfo(path);
     }
 
-    public void applyShareInfoChanges(Object... objects) {
+    public void applyShareInfoChangesToDb(Object... objects) {
         ShareInfo shareInfo = (ShareInfo) objects[0];
         logger.trace("синхронизация с БД {}", shareInfo);
         String path = shareInfo.getFileName();
@@ -134,7 +139,7 @@ public class FileInfoCollector {
         }
     }
 
-    public void applyItemDeleting(Path parentFolder, Path deletedItem) {
+    public void applyItemDeletingFromDb(Path parentFolder, Path deletedItem) {
         logger.trace("обнаружено удаление объекта {}", deletedItem);
         try {
             fileDb.deleteFileMainInfo(deletedItem.toString());

@@ -60,9 +60,12 @@ public class CloudServer {
     }
 
     public void refreshClientsFileList(Object... objects) {
+        logger.trace("обновление состава папки {}", (objects[0]));
         for (ClientHandler clientHandler : clientList) {
             Path currentFolder = clientHandler.getSelectedFolder();
-            if ((objects[0]).equals(currentFolder)) {
+            logger.debug("текущая папка {}, папка с изменениями {}", currentFolder, objects[0]);
+            if ((objects[0]).equals(currentFolder) || currentFolder.toString().isEmpty() ||
+                    currentFolder.toString().equals(clientHandler.getUser().getNick())) {
                 try {
                     logger.trace("обновление клиента {} папки {}", clientHandler, currentFolder);
                     Command.OUT_SEND_FILE_LIST.execute(CmdParams.parse(clientHandler, currentFolder));

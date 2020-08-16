@@ -26,6 +26,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.ResourceBundle;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,21 +56,27 @@ public class ClientMainWindowController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        try {
-            executorService = Executors.newSingleThreadExecutor();
-            socket = new Socket("localhost", 8189);
-            clientHandler = new ClientHandler(null, socket);
-            clientHandler.setMessageListener(message -> {
-                try {
-                    Command.valueOf(message).execute(CmdParams.parse(clientHandler));
-                } catch (Exception e) {
-                    logger.error("command executing error {}", e.getMessage(), e);
-                }
-            });
-            executorService.submit(clientHandler);
-        } catch (Exception e) {
+        Thread connectionThread = new Thread(() -> {
+            try {
+                executorService = Executors.newSingleThreadExecutor();
+                socket = new Socket("localhost", 8189);
+                clientHandler = new ClientHandler(null, socket);
+                clientHandler.setMessageListener(message -> {
+                    try {
+                        Command.valueOf(message).execute(CmdParams.parse(clientHandler));
+                    } catch (Exception e) {
+                        logger.error("command executing error {}", e.getMessage(), e);
+                    }
+                });
+                Thread.sleep(1000);
+                executorService.submit(clientHandler);
+            } catch (Exception e) {
 //            logger.fatal("Не удалось запустить процессы обмена с сервером {}", e.getMessage(), e);
-        }
+            }
+        });
+        connectionThread.setName("ServerThread");
+        connectionThread.setDaemon(true);
+        connectionThread.start();
 
         initGui();
     }
@@ -129,10 +136,10 @@ public class ClientMainWindowController implements Initializable {
 
 
         Command.IN_FILES_LIST.addCommandResultListener(objects -> Platform.runLater(() -> {
-            Path userPath = Paths.get(clientHandler.getUser().getNick());
             FolderInfo filesInfo = (FolderInfo) objects[0];
+            logger.trace("получены данные по составу папки {}", filesInfo);
             lvServerFiles.getItems().clear();
-            lvServerFiles.getItems().addAll(filesInfo.getFileList());
+            lvServerFiles.getItems().addAll(new HashSet<>(filesInfo.getFileList()));
             navigationPane.setAddress(filesInfo.getFolder());
         }));
 

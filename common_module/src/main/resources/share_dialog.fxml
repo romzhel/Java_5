@@ -7,11 +7,12 @@
         <Separator layoutX="14.0" layoutY="22.0" prefHeight="1.0" prefWidth="27.0"/>
         <CheckBox fx:id="cbxAllRead" layoutX="51.0" layoutY="39.0" mnemonicParsing="false" text="Чтение"/>
         <CheckBox fx:id="cbxAllWrite" disable="true" layoutX="230.0" layoutY="39.0" mnemonicParsing="false"
-                  text="Запись"/>
+                  text="Запись" visible="false"/>
         <CheckBox fx:id="cbxRegRead" layoutX="51.0" layoutY="102.0" mnemonicParsing="false" text="Чтение"/>
         <CheckBox fx:id="cbxRegWrite" disable="true" layoutX="230.0" layoutY="102.0" mnemonicParsing="false"
-                  text="Запись"/>
-        <CheckBox fx:id="cbxUserWrite" layoutX="229.0" layoutY="161.0" mnemonicParsing="false" text="Запись"/>
+                  text="Запись" visible="false"/>
+        <CheckBox fx:id="cbxUserWrite" layoutX="229.0" layoutY="161.0" mnemonicParsing="false" text="Запись"
+                  visible="false"/>
         <ListView fx:id="lvUsersShare" layoutX="28.0" layoutY="195.0" prefHeight="86.0" prefWidth="284.0"/>
         <TextField fx:id="tfAddUser" layoutX="26.0" layoutY="157.0" prefHeight="25.0" prefWidth="172.0"/>
         <Label layoutX="45.0" layoutY="14.0" text="Общий доступ для всех пользователей"/>
