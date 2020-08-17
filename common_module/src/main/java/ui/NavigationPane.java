@@ -17,6 +17,7 @@ public class NavigationPane {
     private Path rootPath;
     private Path relativePath;
     private Path address;
+    private boolean useRelatPart;
 
     public NavigationPane(FlowPane flowPane, Path rootPath, Path relativePath) {
         navigationListeners = new ArrayList<>();
@@ -29,9 +30,21 @@ public class NavigationPane {
     public void setAddress(Path path) {
         logger.trace("получен path = '{}', relative path = '{}'", path, relativePath);
         address = path;
-        path = relativePath.getRoot() != null || relativePath.toString().isEmpty() || !path.startsWith(relativePath) ?
-                path : relativePath.relativize(path);
+//        path = relativePath.getRoot() != null || relativePath.toString().isEmpty() || !path.startsWith(relativePath) ?
+//                path : relativePath.relativize(path);
+//        logger.trace("обработанный c '{}' path = '{}'", relativePath, path);
+
+        path = relativePath.getRoot() != null ? path :
+                relativePath.toString().isEmpty() || path.toString().isEmpty() ? path : relativePath.relativize(path);
         logger.trace("обработанный c '{}' path = '{}'", relativePath, path);
+
+        if (path.toString().startsWith("..")) {
+            path = path.subpath(1, path.getNameCount());
+            useRelatPart = false;
+        } else {
+            useRelatPart = true;
+        }
+
         flowPane.getChildren().clear();
         path = rootPath.resolve(path);
         for (int i = 0; i < path.getNameCount(); i++) {
@@ -45,10 +58,8 @@ public class NavigationPane {
             flowPane.getChildren().addAll(hyperlink, new Hyperlink("\\"));
             hyperlink.setOnAction(event -> {
                 Path selectedPath = (Path) hyperlink.getUserData();
-                Path navigatePath = relativePath.getRoot() != null ? selectedPath :
-                        selectedPath.startsWith(relativePath) || selectedPath.toString().isEmpty() ? relativePath.resolve(selectedPath) : selectedPath;
-                address = navigatePath;
-                logger.debug("адрес = '{}'", address);
+                Path navigatePath = useRelatPart || selectedPath.toString().isEmpty() ?
+                        relativePath.resolve(selectedPath) : selectedPath;
 
                 navigationListeners.forEach(action -> {
                     action.navigate(navigatePath);

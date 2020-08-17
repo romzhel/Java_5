@@ -23,6 +23,7 @@ import ui.ShareDialog;
 import java.io.File;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -136,7 +137,7 @@ public class ClientMainWindowController implements Initializable {
 
         Command.IN_FILES_LIST.addCommandResultListener(objects -> Platform.runLater(() -> {
             FolderInfo filesInfo = (FolderInfo) objects[0];
-            logger.trace("получены данные по составу папки {}", filesInfo);
+            logger.trace("получены данные с сервера по составу папки {}", filesInfo);
             lvServerFiles.getItems().clear();
             lvServerFiles.getItems().addAll(filesInfo.getFileList());
             navigationPane.setAddress(filesInfo.getFolder());
@@ -279,7 +280,9 @@ public class ClientMainWindowController implements Initializable {
     private void fileFolderRequest() {
         FileInfo selectedFileInfo = lvServerFiles.getSelectionModel().getSelectedItem();
         if (selectedFileInfo == null) {
-            throw new RuntimeException("Не выбран файл/папка");
+            Dialogs.showMessageTS("Скачивание с сервера", "Не выбран файл");
+//            throw new RuntimeException("Не выбран файл/папка");
+            return;
         }
 
         try {
@@ -319,8 +322,10 @@ public class ClientMainWindowController implements Initializable {
             } else {
                 Dialogs.showMessageTS("Удаление элемента", "Не выбран элемент для удаления");
             }
+        } catch (DirectoryNotEmptyException e) {
+            Dialogs.showMessageTS("Удаление элемента", "Папка не пустая");
         } catch (Exception e) {
-            e.printStackTrace();
+            Dialogs.showMessageTS("Удаление элемента", e.getMessage());
         }
     }
 

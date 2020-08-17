@@ -2,6 +2,7 @@ package file_utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import ui.Dialogs;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -38,7 +39,7 @@ public class FileSystemRequester extends SimpleFileVisitor<Path> {
                             .sorted((o1, o2) -> (o1.isFolder() ? 0 : 1) - (o2.isFolder() ? 0 : 1))
                             .collect(Collectors.toList()));
         } catch (IOException e) {
-            e.printStackTrace();
+            Dialogs.showMessageTS("Ошибка файловой системы", e.getMessage());
             return FolderInfo.create();
         }
     }

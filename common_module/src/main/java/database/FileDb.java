@@ -83,7 +83,7 @@ public class FileDb {
 
     public List<Path> getSharedFoldersForUser(User user, String initialFolder) throws Exception {
         logger.trace("получение расшаренных папок для '{}' в папке {}", user, initialFolder);
-        getSharedFoldersForUser.setString(1, initialFolder + "_%");
+        getSharedFoldersForUser.setString(1, initialFolder + "%");
         getSharedFoldersForUser.setString(2, user.getNick());
         getSharedFoldersForUser.setString(3, user.getNick());
         ResultSet rs = getSharedFoldersForUser.executeQuery();

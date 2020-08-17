@@ -72,35 +72,57 @@ public class FileInfoCollector {
         FolderInfo folderInfo = null;
 
         if (folder.equals(UP_LEVEL) && clientHandler.getUser().equals(User.UNREGISTERED)) {
+            logger.debug("верхний уровень - аноним");
             folderInfo = FolderInfo.create()
                     .setFolder(folder)
-                    .setFileList(treatFoldersFromDb(clientHandler, folder));
+                    .setFileList(getTreatedFoldersFromDb(clientHandler, folder));
             logger.trace("доступные ресурсы в БД {}", folderInfo);
         } else if ((folder.equals(UP_LEVEL) || folder.toString().equals(nick)) && !clientHandler.getUser().equals(User.UNREGISTERED)) {
+            logger.debug("верхний уровень - пользователь");
             folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
-            folderInfo.getFileList().addAll(treatFoldersFromDb(clientHandler, UP_LEVEL));
+            folderInfo.getFileList().addAll(getTreatedFoldersFromDb(clientHandler, UP_LEVEL));
             logger.trace("доступные ресурсы в БД и на диске {}", folderInfo);
         } else if (folder.toString().startsWith(nick)) {
+            logger.debug("folder.toString().startsWith(nick)");
             folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
             logger.trace("доступные ресурсы на диске {}", folderInfo);
         } else /*if (folder.getNameCount() == 1 || selectedFolder.getNameCount() < folder.getNameCount())*/ {
+            logger.debug("остаточное условие");
+            List<Path> fullPaths = fileDb.getSharedFoldersForUser(clientHandler.getUser(), folder.toString());
+            logger.debug("БД = {}", fullPaths);
+            List<FileInfo> treated = treatFoldersFromDb(fullPaths, clientHandler.getUser(), folder);
+            logger.debug("БД treated = {}", treated);
             folderInfo = FolderInfo.create()
                     .setFolder(folder)
-                    .setFileList(treatFoldersFromDb(clientHandler, folder));
-            logger.trace("доступные в корне папки в БД и файлы на диске {}", folderInfo);
-        } /*else {
-            folderInfo = FileSystemRequester.getDetailedPathInfo(MAIN_FOLDER.resolve(folder), MAIN_FOLDER);
-            folderInfo.getFileList().addAll(treatFoldersFromDb(clientHandler, folder));
+                    .setFileList(treated);
+            logger.debug("folder info без диска = {}", folderInfo);
+            for (Path path : fullPaths) {
+                logger.debug("{} equals {} = {}", path, folder, folder.equals(path));
+                if (folder.equals(path)) {
+                    List<FileInfo> filesFromDisk = FileSystemRequester.getDetailedPathInfo(path, MAIN_FOLDER).getFileList();
+                    folderInfo.getFileList().addAll(filesFromDisk);
+                    logger.debug("добавлены файлы с диска {}", filesFromDisk);
+                }
+            }
             logger.trace("доступные папки в БД и файлы на диске {}", folderInfo);
-        }*/
+        }
 
         return folderInfo;
     }
 
-    private List<FileInfo> treatFoldersFromDb(ClientHandler clientHandler, Path folder) throws Exception {
+    private List<FileInfo> getTreatedFoldersFromDb(ClientHandler clientHandler, Path folder) throws Exception {
         return fileDb.getSharedFoldersForUser(clientHandler.getUser(), folder.toString()).stream()
                 .filter(path -> !path.toString().startsWith(clientHandler.getUser().getNick()))
                 .map(path -> folder.toString().isEmpty() ? path.getName(0) : path.subpath(0, folder.getNameCount() + 1))
+                .distinct()
+                .map(path -> FileInfo.create(path, 0L, Files.isDirectory(MAIN_FOLDER.resolve(path))))
+                .collect(Collectors.toList());
+    }
+
+    private List<FileInfo> treatFoldersFromDb(List<Path> files, User user, Path folder) {
+        return files.stream()
+                .filter(path -> !path.toString().startsWith(user.getNick()) && !path.equals(folder))
+                .map(path -> folder.toString().isEmpty() ? path.getName(0) : path.subpath(0, Math.min(folder.getNameCount() + 1, path.getNameCount())))
                 .distinct()
                 .map(path -> FileInfo.create(path, 0L, Files.isDirectory(MAIN_FOLDER.resolve(path))))
                 .collect(Collectors.toList());
