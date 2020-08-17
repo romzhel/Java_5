@@ -165,6 +165,7 @@ public class FileInfoCollector {
         logger.trace("обнаружено удаление объекта {}", deletedItem);
         try {
             fileDb.deleteFileMainInfo(deletedItem.toString());
+            CloudServer.getInstance().refreshClientsFileList(deletedItem.getParent());
         } catch (Exception e) {
             logger.error("ошибка работы БД {}", e.getMessage(), e);
             try {

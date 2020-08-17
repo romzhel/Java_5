@@ -116,7 +116,7 @@ public class FileDb {
 
     public boolean deleteFileMainInfo(String path) throws Exception {
         logger.trace("удаление {}", path);
-        deleteFileInfo.setString(1, path);
+        deleteFileMainInfo.setString(1, path);
 
         return deleteFileMainInfo.executeUpdate() > 0;
     }
